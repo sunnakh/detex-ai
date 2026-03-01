@@ -8,7 +8,7 @@ MODEL_NAME = "jinaai/jina-embeddings-v5-text-small"
 DATA_PATH = Path(__file__).resolve().parent.parent / "data" / "raw" / "train.csv"
 MAX_PER_CLASS = 200_000
 
-# Device selection: CUDA > MPS > CPU
+# Device selection: CUDA > MPS (for apple silicon) > CPU
 if torch.cuda.is_available():
     device = torch.device("cuda")
 elif torch.backends.mps.is_available():
@@ -16,7 +16,9 @@ elif torch.backends.mps.is_available():
 else:
     device = torch.device("cpu")
 
-# Use float16 on CUDA for faster inference + lower VRAM
+""" 
+Use float16 on CUDA for faster inference + lower VRAM 
+"""
 dtype = torch.float16 if device.type == "cuda" else torch.float32
 
 _tokenizer = None
@@ -27,7 +29,7 @@ def load_embedder():
     """Lazily load the tokenizer and model into module-level singletons."""
     global _tokenizer, _model
     if _tokenizer is None or _model is None:
-        print(f"Loading embedder '{MODEL_NAME}' on {device}...")
+        print(f"Loading embedder '{MODEL_NAME}' on {device} ... ")
         _tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME, trust_remote_code=True)
         _model = AutoModel.from_pretrained(
             MODEL_NAME, trust_remote_code=True, torch_dtype=dtype
@@ -49,10 +51,10 @@ def load_data(
     df = df.dropna(subset=["text", "source"])
     df["text"] = df["text"].astype(str)
 
-    # Binary label: human=0, AI=1
+    # binary labelling human=0, AI=1
     df["label"] = df["source"].apply(lambda x: 0 if str(x).lower() == "human" else 1)
 
-    # Balanced sample (capped per class)
+    # Balanced sampling (capped per class)
     n = min(max_per_class, df["label"].value_counts().min())
     human_df = df[df["label"] == 0].sample(n=n, random_state=random_state)
     ai_df = df[df["label"] == 1].sample(n=n, random_state=random_state)
@@ -78,7 +80,7 @@ def load_data(
 
 
 def get_embeddings(texts: list[str], batch_size: int = 32) -> torch.Tensor:
-    """Embed a list of texts. Calls load_embedder() if not already loaded."""
+    """Embedding a list of texts. Calls load_embedder() if not already loaded."""
     load_embedder()
     _model.eval()
     all_embeddings = []

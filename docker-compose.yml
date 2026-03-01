@@ -23,8 +23,8 @@ services:
       args:
         NEXT_PUBLIC_API_URL: http://localhost:8000
         NEXT_PUBLIC_SITE_URL: http://localhost:3000
-        NEXT_PUBLIC_SUPABASE_URL: https://kegdsppqwegirwarqhxh.supabase.co
-        NEXT_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtlZ2RzcHBxd2VnaXJ3YXJxaHhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMTgyODcsImV4cCI6MjA4NzU5NDI4N30.RmfMFywm9oGls-G3aWv-mjX2EiLv5-drFPC7fNS94d0
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
     container_name: detex-frontend
     ports:
       - "3000:3000"

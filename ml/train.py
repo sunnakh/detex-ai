@@ -16,7 +16,7 @@ ARTIFACTS_DIR.mkdir(exist_ok=True)
 
 
 def build_candidates():
-    """Build candidate classifiers matching the notebook configuration."""
+    """candidate classifiers matching the notebook configuration."""
     return {
         "LogisticRegression": LogisticRegression(
             max_iter=2000,
@@ -43,13 +43,13 @@ def build_candidates():
 
 def train():
     """Full training pipeline: load data -> embed -> train all candidates -> save."""
-    # 1. Load embedder
+    # Load embedder
     load_embedder()
 
-    # 2. Load + split data (balanced, 200k per class)
+    #  Load + split data (balanced, 200k per class)
     X_train_texts, X_test_texts, y_train, y_test = load_data()
 
-    # 3. Embed
+    # Embeding part
     print("\nEmbedding train set...")
     t0 = time.time()
     X_train = get_embeddings(X_train_texts).numpy()
@@ -60,7 +60,7 @@ def train():
     print(f"  Test  embeddings: {X_test.shape}")
     print(f"  Done in {time.time() - t0:.1f}s")
 
-    # 4. Train all candidates and save as joblib
+    # Training all candidates and saving as joblib
     candidates = build_candidates()
     trained_models = {}
 
@@ -77,7 +77,7 @@ def train():
         joblib.dump(clf_model, out_path)
         print(f"  Saved -> {out_path}")
 
-    # 5. Save training metadata
+    # Save training metadata
     metadata = {
         "trained_at": datetime.utcnow().isoformat(),
         "device": device.type,

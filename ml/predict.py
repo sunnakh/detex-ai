@@ -8,7 +8,7 @@ _clf = None
 
 
 def _load_clf():
-    """Lazily load the calibrated production classifier."""
+    """ loading the calibrated production classifier."""
     global _clf
     if _clf is None:
         model_path = BEST_MODEL_DIR / "best_clf.joblib"

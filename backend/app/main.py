@@ -35,7 +35,14 @@ async def lifespan(app: FastAPI):
     clf = joblib.load(CLF_PATH)
     print("[startup] Loading embedding model (may download on first run)…")
 
-    device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
+    # Device: CUDA > MPS > CPU (Docker/Linux will use CPU)
+    if torch.cuda.is_available():
+        device = torch.device("cuda")
+    elif torch.backends.mps.is_available():
+        device = torch.device("mps")
+    else:
+        device = torch.device("cpu")
+
     dtype = torch.float16 if device.type == "cuda" else torch.float32
 
     from transformers import AutoModel, AutoTokenizer
@@ -44,8 +51,9 @@ async def lifespan(app: FastAPI):
     model = AutoModel.from_pretrained(
         EMBEDDING_MODEL, trust_remote_code=True, torch_dtype=dtype
     ).to(device)
+    model.eval()
 
-    print("[startup] All models ready.")
+    print(f"[startup] All models ready on {device}.")
     yield
     clf = None
     model = None
@@ -101,10 +109,10 @@ async def detect(req: DetectRequest):
 
     # Exact same embedding logic as training notebook
     encoded = tokenizer(
-        [req.text], padding=True, truncation=True, max_length=512, return_tensors="pt"
+        [req.text], padding=True, truncation=True, max_length=256, return_tensors="pt"
     ).to(device)
 
-    with torch.no_grad():
+    with torch.no_grad(), torch.amp.autocast(device_type=device.type):
         output = model(**encoded)
 
     mask = encoded["attention_mask"].unsqueeze(-1).float()

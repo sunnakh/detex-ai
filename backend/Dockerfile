@@ -14,15 +14,15 @@ RUN pip install --no-cache-dir \
     "uvicorn[standard]" \
     scikit-learn \
     joblib \
-    sentence-transformers \
+    transformers \
     "torch>=2.0.0" \
     --extra-index-url https://download.pytorch.org/whl/cpu
 
-# Copy application code
-COPY app/ ./app/
+# Copy application code (context is project root per docker-compose)
+COPY backend/app/ ./app/
 
-# Copy the trained model artifact (relative to backend/ context)
-COPY artifacts/jina-v5-finetuned/best_clf.joblib ./artifacts/jina-v5-finetuned/best_clf.joblib
+# Copy the trained model artifact
+COPY backend/artifacts/jina-v5-finetuned/best_clf.joblib ./artifacts/jina-v5-finetuned/best_clf.joblib
 
 # HuggingFace cache (embedding model weights downloaded on first run)
 ENV HF_HOME=/cache/huggingface

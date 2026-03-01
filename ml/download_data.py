@@ -7,7 +7,7 @@ OUTPUT_DIR = Path(__file__).resolve().parent.parent /"data" / "raw"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 def main():
-    print("Downloading dataset from Hugging Face...")
+    print("Downloading dataset from Hugging Face: ... ")
     
     try:
         dataset = load_dataset(DATASET_NAME)

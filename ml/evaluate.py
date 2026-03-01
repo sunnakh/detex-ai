@@ -24,18 +24,19 @@ BEST_MODEL_DIR.mkdir(parents=True, exist_ok=True)
 
 def evaluate():
     """Evaluate all trained models, pick best by F1, calibrate, and save."""
-    # 1. Load embedder
+    
+    # loading embedder
     load_embedder()
 
-    # 2. Load data splits
+    # loading data splits
     X_train_texts, X_test_texts, y_train, y_test = load_data()
 
-    # 3. Embed test set
-    print("Embedding test set...")
+    # embedding test set
+    print("Embedding test set... ")
     X_test = get_embeddings(X_test_texts).numpy()
     print(f"  Test embeddings: {X_test.shape}")
 
-    # 4. Discover all trained candidate models
+    # all trained candidate models
     candidate_files = [p for p in ARTIFACTS_DIR.glob("*.joblib")]
     if not candidate_files:
         raise FileNotFoundError(
@@ -61,22 +62,23 @@ def evaluate():
         }
         loaded_models[name] = clf
 
-    # 5. Comparison table
+    # comparison table
     results_df = pd.DataFrame(results).T.sort_values("F1", ascending=False)
     print("\n" + "=" * 60)
-    print("  MODEL COMPARISON")
+    print("  Model Comparison")
     print("=" * 60)
     print(results_df.to_string())
     print("=" * 60)
 
-    # 6. Pick best by F1
+    # picking the best by F1
     best_name = results_df["F1"].idxmax()
     best_clf_raw = loaded_models[best_name]
 
     print(f"\nBest model: {best_name}")
     print(f"  F1: {results[best_name]['F1']:.4f}")
 
-    # 7. Calibrate best model with isotonic regression
+    #  calibrating best model with isotonic regression
+    
     print(f"\nCalibrating {best_name}...")
     X_train = get_embeddings(X_train_texts).numpy()
     best_clf = CalibratedClassifierCV(best_clf_raw, method="isotonic", cv=5)
@@ -86,7 +88,7 @@ def evaluate():
     y_pred_cal = best_clf.predict(X_test)
     y_prob_cal = best_clf.predict_proba(X_test)[:, 1]
 
-    print(f"\nCalibrated model performance:")
+    print(f"\nCalibrated model performance: ")
     cal_metrics = {
         "accuracy": round(accuracy_score(y_test, y_pred_cal), 4),
         "precision": round(precision_score(y_test, y_pred_cal), 4),
@@ -97,7 +99,7 @@ def evaluate():
     for k, v in cal_metrics.items():
         print(f"  {k:<12}: {v}")
 
-    print("\nClassification Report:")
+    print("\nClassification Report: ")
     print(classification_report(y_test, y_pred_cal, target_names=["human", "ai"]))
 
     cm = confusion_matrix(y_test, y_pred_cal)
@@ -106,16 +108,16 @@ def evaluate():
         index=["Actual: human", "Actual: ai"],
         columns=["Predicted: human", "Predicted: ai"],
     )
-    print("Confusion Matrix:")
+    print("Confusion Matrix: ")
     print(cm_df.to_string())
     print()
 
-    # 9. Save calibrated best model as production model
+    # saving calibrated best model as production model
     model_path = BEST_MODEL_DIR / "best_clf.joblib"
     joblib.dump(best_clf, model_path)
     print(f"Best model saved -> {model_path}")
 
-    # 10. Save metadata
+    # 10. saving metadata
     metadata = {
         "model_name": best_name,
         "saved_at": datetime.utcnow().isoformat(),
