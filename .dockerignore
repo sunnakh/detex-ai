@@ -1,0 +1,23 @@
+# Python
+.venv
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# ML artifacts — exclude large training data but keep model artifacts
+data/
+notebooks/
+transformers/
+
+# Frontend (built separately)
+frontend/
+
+# Dev / repo noise
+.git
+.gitignore
+*.md
+.env*
+scripts/
+project-design/

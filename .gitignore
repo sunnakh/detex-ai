@@ -1,13 +1,114 @@
-# Python-generated files
+# ── System & OS ──
+.DS_Store
+Thumbs.db
+
+# ── IDEs & Editors ──
+.vscode/
+.idea/
+*.swp
+*~
+
+# ── Environment Variables ──
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.env
+
+# ── Python / Backend ──
 __pycache__/
-*.py[oc]
+*.py[cod]
+*$py.class
+*.so
 build/
+develop-eggs/
 dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
 wheels/
-*.egg-info
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
 
-# Virtual environments
-.venv
+# Virtual Environments
+.venv/
+venv/
+ENV/
+env/
+env.bak/
+venv.bak/
 
-# folders
-data
+# Pytest / Coverage
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# ── Node / Frontend ──
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+.pnpm-store
+
+# Next.js
+.next/
+out/
+build/
+.swc/
+
+# TypeScript
+*.tsbuildinfo
+
+# ── Machine Learning / Artifacts ──
+# Models and weights
+*.pkl
+*.joblib
+*.pt
+*.pth
+*.h5
+*.onnx
+*.safetensors
+*.bin
+*.msgpack
+models/
+artifacts/
+
+# Hugging Face cache
+.huggingface/
+
+# ── Project Specific ──
+data/
+project-design/
+notebooks/fine-tuned/
+notebooks/pre-trained/
+inference-data.txt
+
+# Root package files (if unintended)
+package.json
+package-lock.json
+
+# some folders
+testing
+transformers
+notebooks
+test.py

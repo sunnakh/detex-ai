@@ -1,0 +1,37 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: detex-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - hf_cache:/cache/huggingface
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:8000
+        NEXT_PUBLIC_SITE_URL: http://localhost:3000
+        NEXT_PUBLIC_SUPABASE_URL: https://kegdsppqwegirwarqhxh.supabase.co
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtlZ2RzcHBxd2VnaXJ3YXJxaHhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMTgyODcsImV4cCI6MjA4NzU5NDI4N30.RmfMFywm9oGls-G3aWv-mjX2EiLv5-drFPC7fNS94d0
+    container_name: detex-frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  hf_cache:
