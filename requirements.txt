@@ -1,0 +1,18 @@
+# ML & Embeddings
+torch>=2.0.0
+transformers>=4.40.0
+scikit-learn>=1.4.0
+xgboost>=2.0.0
+joblib>=1.3.0
+
+# data
+datasets>=2.18.0
+pandas>=2.2.0
+
+# api
+fastapi>=0.110.0
+uvicorn[standard]>=0.29.0
+
+# utilities
+huggingface-hub>=0.22.0
+psutil>=5.9.0

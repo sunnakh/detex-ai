@@ -14,14 +14,14 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-# ── Paths ──────────────────────────────────────────────────────────────────────
+# paths
 _ARTIFACTS_DIR = os.path.join(
     os.path.dirname(__file__), "..", "artifacts", "jina-v5-finetuned"
 )
 CLF_PATH = os.path.join(_ARTIFACTS_DIR, "best_clf.joblib")
 EMBEDDING_MODEL = "jinaai/jina-embeddings-v5-text-small"
 
-# ── Global model holders ───────────────────────────────────────────────────────
+# Global model holders ───────────────────────────────────────────────────────
 clf = None
 model = None
 tokenizer = None
@@ -35,7 +35,7 @@ async def lifespan(app: FastAPI):
     clf = joblib.load(CLF_PATH)
     print("[startup] Loading embedding model (may download on first run)…")
 
-    # Device: CUDA > MPS > CPU (Docker/Linux will use CPU)
+    # CUDA > MPS > CPU (Docker/Linux will use CPU)
     if torch.cuda.is_available():
         device = torch.device("cuda")
     elif torch.backends.mps.is_available():
@@ -60,7 +60,7 @@ async def lifespan(app: FastAPI):
     tokenizer = None
 
 
-# ── App ────────────────────────────────────────────────────────────────────────
+# app ────────────────────────────────────────────────────────────────────────
 app = FastAPI(title="detex.ai API", version="3.0.0", lifespan=lifespan)
 
 app.add_middleware(
@@ -72,7 +72,7 @@ app.add_middleware(
 )
 
 
-# ── Schemas ────────────────────────────────────────────────────────────────────
+#  Schemas ────────────────────────────────────────────────────────────────────
 class DetectRequest(BaseModel):
     text: str
     session_id: Optional[str] = None
@@ -88,7 +88,7 @@ class DetectResponse(BaseModel):
     analysis_time_ms: float
 
 
-# ── Endpoints ──────────────────────────────────────────────────────────────────
+#  Endpoints ──────────────────────────────────────────────────────────────────
 @app.get("/health")
 async def health():
     ready = clf is not None and model is not None
@@ -107,7 +107,7 @@ async def detect(req: DetectRequest):
 
     t0 = time.perf_counter()
 
-    # Exact same embedding logic as training notebook
+    # exact same embedding logic as training notebook
     encoded = tokenizer(
         [req.text], padding=True, truncation=True, max_length=256, return_tensors="pt"
     ).to(device)
