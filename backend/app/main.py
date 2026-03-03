@@ -1,6 +1,6 @@
 """
 detex.ai — FastAPI Backend
-Uses jinaai/jina-embeddings-v5-text-small + SVM (best_clf.joblib) for detection.
+Using jinaai/jina-embeddings-v5-text-small + SVM (best_clf.joblib) for detection.
 """
 
 import os

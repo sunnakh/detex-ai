@@ -12,9 +12,11 @@ RUN apt-get update \
 RUN pip install --no-cache-dir \
     fastapi \
     "uvicorn[standard]" \
-    scikit-learn \
+    "scikit-learn==1.6.1" \
     joblib \
     transformers \
+    peft \
+    xgboost \
     "torch>=2.0.0" \
     --extra-index-url https://download.pytorch.org/whl/cpu
 
