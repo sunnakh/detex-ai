@@ -24,16 +24,34 @@ AI_REFS = [
 ]
 
 
-def load_model() -> SentenceTransformer:
-    """Load the fine-tuned merged model. Falls back to base if not found."""
+def _is_valid_st_model(path: str) -> bool:
+    """Check that a directory is a saved SentenceTransformer (has modules.json)."""
+    return os.path.isdir(path) and os.path.isfile(os.path.join(path, "modules.json"))
 
-    if os.path.exists(config.FINAL_DIR):
+
+def load_model() -> SentenceTransformer:
+    """Load the fine-tuned merged model. Falls back to base pre-trained if not found."""
+
+    if _is_valid_st_model(config.FINAL_DIR):
         print(f"Loading fine-tuned model from {config.FINAL_DIR}")
-        return SentenceTransformer(config.FINAL_DIR, trust_remote_code=True)
-    print(
-        f"Fine-tuned model not found at '{config.FINAL_DIR}'. Run part_03_training.py first."
+        try:
+            return SentenceTransformer(config.FINAL_DIR, trust_remote_code=True)
+        except Exception as exc:
+            print(f"  ✗ Failed to load fine-tuned model: {exc}")
+            print("  Falling back to base pre-trained model.\n")
+
+    else:
+        print(
+            f"Fine-tuned model not found at '{config.FINAL_DIR}'.\n"
+            f"  Run train.py first to produce a fine-tuned checkpoint.\n"
+            f"  Falling back to base pre-trained model: {config.MODEL_ID}\n"
+        )
+
+    return SentenceTransformer(
+        config.MODEL_ID,
+        trust_remote_code=True,
+        model_kwargs={"default_task": "text-matching"},
     )
-    raise FileNotFoundError(f"No model found at {config.FINAL_DIR}")
 
 
 def embed(model: SentenceTransformer, texts: list[str]) -> torch.Tensor:
