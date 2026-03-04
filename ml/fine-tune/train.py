@@ -1,7 +1,11 @@
 import os
+import gc
 from pathlib import Path
 
+import torch
+
 from dotenv import load_dotenv
+
 load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 
 from sentence_transformers import (
@@ -15,6 +19,7 @@ from huggingface_hub import login
 from sentence_transformers.evaluation import InformationRetrievalEvaluator
 from sentence_transformers.losses import MatryoshkaLoss, MultipleNegativesRankingLoss
 from model import load_model
+from peft import PeftModel
 
 # ── HuggingFace auth ──────────────────────────────────────────────────────
 login(os.getenv("HF_TOKEN"))
@@ -39,6 +44,9 @@ print(f"Train: {len(train_ds):,} | Eval: {len(eval_ds):,}")
 # loading model
 
 model = load_model()
+
+torch.cuda.empty_cache()
+gc.collect()
 
 # ── 3. Loss ───────────────────────────────────────────────────────────────
 # MNR treats all other samples in the batch as negatives — very sample-efficient.
@@ -107,15 +115,14 @@ try:
     trainer.train()
 except Exception:
     print("Training interrupted — saving checkpoint...")
-    trainer.save_model(config.CHECKPOINT_DIR)
+    trainer.save_state()
     raise
 
-# ── 7. Merge LoRA + save ──────────────────────────────────────────────────
-print("Merging LoRA weights into base model...")
+# ── 7. Save LoRA weights ─────────────────────────────────────────────────────
+print("Saving LoRA weights...")
 transformer_module = model._first_module()
 backbone = getattr(transformer_module, "auto_model", None) or getattr(
     transformer_module, "model"
 )
-backbone = backbone.merge_and_unload()
-model.save_pretrained(config.FINAL_DIR)
-print(f"Model saved to {config.FINAL_DIR}")
+backbone.save_pretrained(config.CHECKPOINT_DIR)
+print(f"LoRA adapter saved to {config.CHECKPOINT_DIR}")
