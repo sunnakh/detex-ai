@@ -8,9 +8,14 @@ from sentence_transformers import (
 import config
 
 from datasets import DatasetDict, load_from_disk
+from huggingface_hub import login
 from sentence_transformers.evaluation import InformationRetrievalEvaluator
 from sentence_transformers.losses import MatryoshkaLoss, MultipleNegativesRankingLoss
 from model import load_model
+
+# ── HuggingFace auth ──────────────────────────────────────────────────────
+_hf_token = os.environ.get("HF_TOKEN", "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")
+login(token=_hf_token, add_to_git_credential=False)
 
 print("Load dataset from disk: ...")
 
