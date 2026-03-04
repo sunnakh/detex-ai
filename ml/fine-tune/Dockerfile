@@ -1,7 +1,7 @@
 # ── Stage 1: base image ──────────────────────────────────────────────────────
-# PyTorch 2.3 with CUDA 12.1 — matches the training environment.
+# PyTorch 2.4+ required by newer Hugging Face transformers.
 # Use -devel variant so nvcc is available if any extension needs compilation.
-FROM pytorch/pytorch:2.3.1-cuda12.1-cudnn8-runtime
+FROM pytorch/pytorch:2.4.1-cuda12.1-cudnn9-runtime
 
 # ── System deps ───────────────────────────────────────────────────────────────
 RUN apt-get update && apt-get install -y --no-install-recommends \

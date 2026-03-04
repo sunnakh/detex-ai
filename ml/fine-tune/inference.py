@@ -2,6 +2,7 @@
 
 
 import os
+import psutil
 import torch
 import torch.nn.functional as F
 from sentence_transformers import SentenceTransformer
@@ -172,6 +173,10 @@ def predict(model: SentenceTransformer, text: str) -> dict:
         verdict    = "AI-GENERATED"
         confidence = "high" if margin_pct > 20 else "medium"
 
+    # Get RAM usage
+    process = psutil.Process(os.getpid())
+    ram_gb = process.memory_info().rss / (1024 ** 3)
+
     return {
         "verdict":    verdict,
         "confidence": confidence,
@@ -181,6 +186,7 @@ def predict(model: SentenceTransformer, text: str) -> dict:
         "elapsed_ms": round(elapsed_ms, 1),
         "word_count": len(text.split()),
         "char_count": len(text),
+        "ram_gb":     round(ram_gb, 2)
     }
 
 
@@ -213,6 +219,7 @@ def print_result(r: dict):
     print(
         f"  Words: {r['word_count']}   Chars: {r['char_count']}   Time: {r['elapsed_ms']} ms"
     )
+    print(f"  RAM Usage: {r['ram_gb']} GB")
     print("╚══════════════════════════════════════════════════╝")
     print()
 
