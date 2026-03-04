@@ -62,8 +62,10 @@ class LoRATrainer(SentenceTransformerTrainer):
         peft_cfg = backbone.peft_config[config.TRAIN_ADAPTER]
         cfg_dict = peft_cfg.to_dict()
         for k, v in cfg_dict.items():
-            if hasattr(v, "value"):
+            if hasattr(v, "value"):        # Enum → its primitive value
                 cfg_dict[k] = v.value
+            elif isinstance(v, set):       # set → list (e.g. target_modules)
+                cfg_dict[k] = sorted(v)
         with open(os.path.join(output_dir, "adapter_config.json"), "w") as f:
             json.dump(cfg_dict, f, indent=2)
 

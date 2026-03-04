@@ -1,23 +1,64 @@
-# ── Base: CUDA 12.1 + cuDNN 8 on Ubuntu 22.04 ────────────────────────────
-FROM nvidia/cuda:12.1.1-cudnn8-runtime-ubuntu22.04
+# ── Stage 1: base image ──────────────────────────────────────────────────────
+# PyTorch 2.3 with CUDA 12.1 — matches the training environment.
+# Use -devel variant so nvcc is available if any extension needs compilation.
+FROM pytorch/pytorch:2.3.1-cuda12.1-cudnn8-runtime
 
-ENV DEBIAN_FRONTEND=noninteractive
-ENV PYTHONUNBUFFERED=1
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV HF_HOME=/app/.cache/huggingface
-
+# ── System deps ───────────────────────────────────────────────────────────────
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3.11 python3.11-dev python3-pip git \
-    && rm -rf /var/lib/apt/lists/* \
-    && ln -sf /usr/bin/python3.11 /usr/bin/python \
-    && ln -sf /usr/bin/pip3 /usr/bin/pip
+        git \
+        curl \
+        && rm -rf /var/lib/apt/lists/*
 
+# ── Python deps ───────────────────────────────────────────────────────────────
+# Copy only requirements first so Docker can cache this layer independently
+# of any source-file changes.
 WORKDIR /app
 
-COPY requirements.txt .
+COPY requirements.txt /app/requirements.txt
+
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+    pip install --no-cache-dir \
+        # Core ML
+        torch>=2.0.0 \
+        transformers>=4.40.0 \
+        sentence-transformers>=3.0.0 \
+        peft>=0.10.0 \
+        accelerate>=0.29.0 \
+        safetensors>=0.4.0 \
+        # Data
+        datasets>=2.18.0 \
+        huggingface-hub>=0.22.0 \
+        # Utilities
+        python-dotenv>=1.0.0 \
+        psutil>=5.9.0
 
-COPY ml/fine-tune/ .
+# ── Copy source ───────────────────────────────────────────────────────────────
+# Copy the fine-tune scripts into /app/ml/fine-tune so that the relative
+# parent-directory lookup for .env (parents[2]) resolves correctly:
+#   /app/ml/fine-tune/train.py  →  parents[2] = /app  →  /app/.env
+COPY ml/fine-tune/ /app/ml/fine-tune/
 
-CMD ["sh", "-c", "python data_pipeline.py && python train.py"]
+# Working directory for all RUN/CMD invocations
+WORKDIR /app/ml/fine-tune
+
+# ── Environment ───────────────────────────────────────────────────────────────
+# Reduce CUDA memory fragmentation (same as the in-script default)
+ENV PYTORCH_ALLOC_CONF=expandable_segments:True
+# Silence the HF symlinks warning inside Docker
+ENV HF_HUB_DISABLE_SYMLINKS_WARNING=1
+# Redirect HF cache to a well-known path that can be volume-mounted
+ENV HF_HOME=/app/.cache/huggingface
+# Disable tokenizer parallelism warnings in subprocess context
+ENV TOKENIZERS_PARALLELISM=false
+
+# ── Volumes ───────────────────────────────────────────────────────────────────
+# Mount these at runtime so data and checkpoints survive container restarts:
+#   -v $(pwd)/.data:/app/ml/fine-tune/.data          ← processed dataset
+#   -v $(pwd)/checkpoints:/app/ml/fine-tune/checkpoints  ← training checkpoints
+#   -v $(pwd)/.cache:/app/.cache                      ← HF model cache
+VOLUME ["/app/ml/fine-tune/.data", "/app/ml/fine-tune/checkpoints", "/app/.cache"]
+
+# ── Entry point ───────────────────────────────────────────────────────────────
+# Default: run training only (assumes dataset already exists via volume mount).
+# To run the full pipeline: docker run ... bash -c "python data_pipeline.py && python train.py"
+CMD ["python", "train.py"]
