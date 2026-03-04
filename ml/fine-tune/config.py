@@ -33,7 +33,7 @@ BATCH_SIZE = 4
 GRAD_ACCUM = 4  # effective batch = 16
 MAX_SEQ_LENGTH = 256  # caps tokenizer — Jina v5 defaults to 8192 which causes OOM
 LEARNING_RATE = 2e-4
-WARMUP_RATIO = 0.1
+WARMUP_STEPS = 6942  # ~10% of 69,417 total steps (replaces deprecated warmup_ratio)
 WEIGHT_DECAY = 0.01
 MAX_GRAD_NORM = 1.0
 EVAL_STEPS = 200

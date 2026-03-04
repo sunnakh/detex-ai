@@ -25,19 +25,49 @@ from model import load_model
 
 
 class LoRATrainer(SentenceTransformerTrainer):
-    """Overrides _save to use PEFT's save_pretrained instead of the
-    sentence-transformers module.save() path, which breaks when the
-    Transformer module is PEFT-wrapped and lacks a .save() method."""
+    """Overrides _save to manually extract and save LoRA adapter weights.
+
+    JinaEmbeddingsV5Model is wrapped by PeftMixedModel (for non-standard
+    architectures), which explicitly raises NotImplementedError on
+    save_pretrained(). We bypass this by extracting only the LoRA weight
+    keys from the state dict and writing them in the standard PEFT adapter
+    format (adapter_model.safetensors + adapter_config.json).
+    """
 
     def _save(self, output_dir: str | None = None, state_dict=None):
+        import json
         output_dir = output_dir or self.args.output_dir
         os.makedirs(output_dir, exist_ok=True)
+
         transformer_module = self.model._first_module()
         backbone = getattr(transformer_module, "auto_model", None) or getattr(
             transformer_module, "model"
         )
-        backbone.save_pretrained(output_dir)
-        # Also save the tokenizer so the checkpoint is self-contained
+
+        # Extract only LoRA adapter weights from the full state dict
+        lora_sd = {
+            k: v.cpu()
+            for k, v in backbone.state_dict().items()
+            if "lora_" in k
+        }
+
+        # Save weights — safetensors preferred, fallback to .bin
+        try:
+            from safetensors.torch import save_file
+            save_file(lora_sd, os.path.join(output_dir, "adapter_model.safetensors"))
+        except ImportError:
+            torch.save(lora_sd, os.path.join(output_dir, "adapter_model.bin"))
+
+        # Save adapter config as JSON (same format as PEFT's own save)
+        peft_cfg = backbone.peft_config[config.TRAIN_ADAPTER]
+        cfg_dict = peft_cfg.to_dict()
+        for k, v in cfg_dict.items():
+            if hasattr(v, "value"):
+                cfg_dict[k] = v.value
+        with open(os.path.join(output_dir, "adapter_config.json"), "w") as f:
+            json.dump(cfg_dict, f, indent=2)
+
+        # Save tokenizer alongside weights so the checkpoint is self-contained
         tokenizer = getattr(transformer_module, "tokenizer", None)
         if tokenizer is not None:
             tokenizer.save_pretrained(output_dir)
@@ -108,7 +138,7 @@ args = SentenceTransformerTrainingArguments(
     per_device_train_batch_size=config.BATCH_SIZE,
     gradient_accumulation_steps=config.GRAD_ACCUM,
     learning_rate=config.LEARNING_RATE,
-    warmup_ratio=config.WARMUP_RATIO,
+    warmup_steps=config.WARMUP_STEPS,
     weight_decay=config.WEIGHT_DECAY,
     max_grad_norm=config.MAX_GRAD_NORM,
     bf16=True,
