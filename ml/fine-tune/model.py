@@ -10,6 +10,10 @@ from sentence_transformers import SentenceTransformer
 def load_model() -> SentenceTransformer:
     """Full pipeline: load base → patch forward → apply LoRA → freeze base weights"""
 
+    def _backbone(module):
+        """Compat helper: sentence-transformers ≥2.7 uses auto_model, older uses model."""
+        return getattr(module, "auto_model", None) or getattr(module, "model")
+
     # ──  Load base model ────────────────────────────────────────────────
     print("Loading Jina v5 model: ...")
     model = SentenceTransformer(
@@ -20,12 +24,13 @@ def load_model() -> SentenceTransformer:
 
     # ──  Patch forward ──────────────────────────────────────────────────
     def _training_forward(self, features, task=None, truncate_dim=None):
-        self.auto_model.set_adapter([config.TRAIN_ADAPTER])
-        device = next(self.auto_model.parameters()).device
+        bb = _backbone(self)
+        bb.set_adapter([config.TRAIN_ADAPTER])
+        device = next(bb.parameters()).device
 
         batch = {k: v.to(device) for k, v in features.items() if torch.is_tensor(v)}
 
-        outputs = self.auto_model(**batch)
+        outputs = bb(**batch)
         hidden = outputs.last_hidden_state
         mask = batch.get("attention_mask")
 
@@ -55,7 +60,7 @@ def load_model() -> SentenceTransformer:
         lora_dropout=config.LORA_DROPOUT,
     )
 
-    jina = transformer.auto_model
+    jina = _backbone(transformer)
     jina.add_adapter(config.TRAIN_ADAPTER, lora_cfg)
     jina.set_adapter(config.TRAIN_ADAPTER)
     print(f"LoRA adapter '{config.TRAIN_ADAPTER}' added.")

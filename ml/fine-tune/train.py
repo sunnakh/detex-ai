@@ -43,9 +43,12 @@ print(f"Loss: MatryoshkaLoss over dims {config.MATRYOSHKA_DIMS}")
 # ── 4. Evaluator ──────────────────────────────────────────────────────────
 # IR evaluator measures MAP, NDCG, MRR — more meaningful than raw eval_loss
 # for an embedding model. Anchor → should retrieve its own positive.
-eval_queries = {str(i): eval_ds[i]["anchor"] for i in range(len(eval_ds))}
-eval_corpus = {str(i): eval_ds[i]["positive"] for i in range(len(eval_ds))}
-eval_relevant = {str(i): {str(i)} for i in range(len(eval_ds))}
+# to_dict() reads all columns in one pass — much faster than row-by-row indexing
+eval_dict = eval_ds.to_dict()
+eval_keys = [str(i) for i in range(len(eval_ds))]
+eval_queries = dict(zip(eval_keys, eval_dict["anchor"]))
+eval_corpus = dict(zip(eval_keys, eval_dict["positive"]))
+eval_relevant = {k: {k} for k in eval_keys}
 
 evaluator = InformationRetrievalEvaluator(
     queries=eval_queries,
@@ -102,6 +105,10 @@ except Exception:
 
 # ── 7. Merge LoRA + save ──────────────────────────────────────────────────
 print("Merging LoRA weights into base model...")
-model[0].model = model[0].model.merge_and_unload()
+transformer_module = model._first_module()
+backbone = getattr(transformer_module, "auto_model", None) or getattr(
+    transformer_module, "model"
+)
+backbone = backbone.merge_and_unload()
 model.save_pretrained(config.FINAL_DIR)
 print(f"Model saved to {config.FINAL_DIR}")
