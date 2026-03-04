@@ -1,7 +1,7 @@
 # ── Stage 1: base image ──────────────────────────────────────────────────────
-# PyTorch 2.4+ required by newer Hugging Face transformers.
-# Use -devel variant so nvcc is available if any extension needs compilation.
-FROM pytorch/pytorch:2.4.1-cuda12.1-cudnn9-runtime
+# PyTorch 2.6+ with CUDA 12.4 — required for RTX 5090 (Blackwell, sm_120).
+# Earlier images have no compiled CUDA kernels for the Blackwell architecture.
+FROM pytorch/pytorch:2.6.0-cuda12.4-cudnn9-runtime
 
 # ── System deps ───────────────────────────────────────────────────────────────
 RUN apt-get update && apt-get install -y --no-install-recommends \
