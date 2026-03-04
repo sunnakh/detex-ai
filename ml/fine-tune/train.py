@@ -22,7 +22,6 @@ from huggingface_hub import login
 from sentence_transformers.evaluation import InformationRetrievalEvaluator
 from sentence_transformers.losses import MatryoshkaLoss, MultipleNegativesRankingLoss
 from model import load_model
-from peft import PeftModel
 
 # ── HuggingFace auth ──────────────────────────────────────────────────────
 login(os.getenv("HF_TOKEN"))
@@ -102,7 +101,7 @@ args = SentenceTransformerTrainingArguments(
     save_strategy="steps",
     save_steps=config.SAVE_STEPS,
     load_best_model_at_end=True,
-    metric_for_best_model="ai-detection-eval_ndcg@10",
+    metric_for_best_model="ai-detection-eval_cosine_ndcg@10",
     greater_is_better=True,
     save_total_limit=config.SAVE_TOTAL_LIMIT,
     logging_steps=config.LOGGING_STEPS,
