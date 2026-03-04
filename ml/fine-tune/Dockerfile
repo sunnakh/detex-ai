@@ -21,12 +21,12 @@ RUN ln -sf /usr/bin/python3.11 /usr/bin/python && \
 WORKDIR /app
 
 # ── Install Python deps ───────────────────────────────────────────────────
-COPY ../../requirements.txt .
+COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
 # ── Copy fine-tune source ─────────────────────────────────────────────────
-COPY . .
+COPY ml/fine-tune/ .
 
 # ── HuggingFace cache dir (mount a volume here to avoid re-downloading) ───
 ENV HF_HOME=/app/.cache/huggingface
