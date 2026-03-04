@@ -15,7 +15,11 @@ from sentence_transformers import SentenceTransformer
 from sentence_transformers.util import semantic_search
 
 # ── HuggingFace auth ──────────────────────────────────────────────────────
-login(os.getenv("HF_TOKEN"))
+_hf_token = os.getenv("HF_TOKEN")
+if _hf_token:
+    login(token=_hf_token, add_to_git_credential=False)
+else:
+    print("⚠  HF_TOKEN not set — skipping login (public datasets only)")
 
 random.seed(config.SEED)
 

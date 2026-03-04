@@ -29,6 +29,7 @@ services:
               count: all
               capabilities: [gpu]
     environment:
+      HF_TOKEN: ${HF_TOKEN}
       HF_HUB_DISABLE_SYMLINKS_WARNING: "1"
       HF_HOME: /app/.cache/huggingface
       TOKENIZERS_PARALLELISM: "false"
