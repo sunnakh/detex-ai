@@ -112,21 +112,34 @@ def build_dataset() -> Dataset:
     print("Loading RAID dataset: ...")
 
     RAID_no = config.RAID_CAP
-    raid_dataset = load_dataset(path="liamdugan/raid", split="train", streaming=True)
     human_raid, ai_raid = [], []
 
-    for x in raid_dataset:
-        gen = x["generation"]
-        if len(gen) <= 150:
-            continue
-        if x["model"] == "human":
-            if len(human_raid) < RAID_no:
-                human_raid.append(gen)
-        else:
-            if len(ai_raid) < RAID_no * 5:
-                ai_raid.append(gen)
-        if len(human_raid) >= RAID_no and len(ai_raid) >= RAID_no * 5:
-            break
+    for _attempt in range(3):
+        try:
+            raid_dataset = load_dataset(path="liamdugan/raid", split="train", streaming=True)
+            human_raid, ai_raid = [], []
+            for x in raid_dataset:
+                gen = x["generation"]
+                if len(gen) <= 150:
+                    continue
+                if x["model"] == "human":
+                    if len(human_raid) < RAID_no:
+                        human_raid.append(gen)
+                else:
+                    if len(ai_raid) < RAID_no * 5:
+                        ai_raid.append(gen)
+                if len(human_raid) >= RAID_no and len(ai_raid) >= RAID_no * 5:
+                    break
+            break  # success — exit retry loop
+        except Exception as exc:
+            if _attempt < 2:
+                import time
+                print(f"  RAID download error (attempt {_attempt + 1}/3): {exc}")
+                print("  Retrying in 10 s...")
+                time.sleep(10)
+            else:
+                print(f"  RAID failed after 3 attempts — skipping. Error: {exc}")
+                human_raid, ai_raid = [], []
 
     random.shuffle(human_raid)
     random.shuffle(ai_raid)
