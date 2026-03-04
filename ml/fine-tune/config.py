@@ -32,14 +32,13 @@ LORA_DROPOUT = 0.05
 LORA_TARGETS = ["q_proj", "v_proj", "k_proj", "o_proj"]
 
 # ── Training ───────────────────────────────────────────────────────────────
-EPOCHS = 2
-BATCH_SIZE = 4
-GRAD_ACCUM = 4  # effective batch = 16
+# Target: ~6 hrs on RTX 5090 (32GB VRAM)
+EPOCHS = 1
+BATCH_SIZE = 32     # 8× larger batches — saturates the 5090 properly
+GRAD_ACCUM = 1      # effective batch = 32 (no accumulation needed)
 MAX_SEQ_LENGTH = 256  # caps tokenizer — Jina v5 defaults to 8192 which causes OOM
 LEARNING_RATE = 2e-4
-WARMUP_STEPS = (
-    312  # ~10% of ~3,125 total steps (50K samples, 1 epoch, batch 4, grad_accum 4)
-)
+WARMUP_STEPS = 100  # ~10% of ~1,000 total steps
 WEIGHT_DECAY = 0.01
 MAX_GRAD_NORM = 1.0
 EVAL_STEPS = 200
