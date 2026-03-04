@@ -2,8 +2,10 @@
 
 
 import os
+import types
 import torch
 import torch.nn.functional as F
+from peft import PeftModel
 from sentence_transformers import SentenceTransformer
 
 import config
@@ -24,34 +26,101 @@ AI_REFS = [
 ]
 
 
-def _is_valid_st_model(path: str) -> bool:
-    """Check that a directory is a saved SentenceTransformer (has modules.json)."""
+def _has_lora_adapter(path: str) -> bool:
+    """True when the directory contains a saved LoRA adapter (from train.py)."""
+    return os.path.isdir(path) and os.path.isfile(
+        os.path.join(path, "adapter_config.json")
+    )
+
+
+def _has_full_st_model(path: str) -> bool:
+    """True when the directory is a full SentenceTransformer save."""
     return os.path.isdir(path) and os.path.isfile(os.path.join(path, "modules.json"))
 
 
-def load_model() -> SentenceTransformer:
-    """Load the fine-tuned merged model. Falls back to base pre-trained if not found."""
-
-    if _is_valid_st_model(config.FINAL_DIR):
-        print(f"Loading fine-tuned model from {config.FINAL_DIR}")
-        try:
-            return SentenceTransformer(config.FINAL_DIR, trust_remote_code=True)
-        except Exception as exc:
-            print(f"  ✗ Failed to load fine-tuned model: {exc}")
-            print("  Falling back to base pre-trained model.\n")
-
-    else:
-        print(
-            f"Fine-tuned model not found at '{config.FINAL_DIR}'.\n"
-            f"  Run train.py first to produce a fine-tuned checkpoint.\n"
-            f"  Falling back to base pre-trained model: {config.MODEL_ID}\n"
-        )
-
+def _load_base() -> SentenceTransformer:
+    print(f"  Loading base model: {config.MODEL_ID} ...")
     return SentenceTransformer(
         config.MODEL_ID,
         trust_remote_code=True,
-        model_kwargs={"default_task": "text-matching"},
+        model_kwargs={"dtype": torch.bfloat16, "default_task": "text-matching"},
     )
+
+
+def load_model() -> SentenceTransformer:
+    """
+    Load the fine-tuned model from FINAL_DIR.
+
+    train.py saves only the LoRA adapter weights (adapter_config.json +
+    adapter_model.safetensors), NOT a full SentenceTransformer.
+    So we: 1) load the base model, 2) inject the LoRA adapter, 3) patch the
+    forward pass to use the adapter — matching what training did.
+    Falls back to the plain base model if no checkpoint is found.
+    """
+
+    # ── Case 1: full SentenceTransformer save (rare — kept for compatibility) ──
+    if _has_full_st_model(config.FINAL_DIR):
+        print(f"Loading full fine-tuned ST model from {config.FINAL_DIR}")
+        try:
+            return SentenceTransformer(config.FINAL_DIR, trust_remote_code=True)
+        except Exception as exc:
+            print(f"  ✗ Failed: {exc}. Falling back to base model.\n")
+            return _load_base()
+
+    # ── Case 2: LoRA adapter (what train.py actually saves) ───────────────────
+    if _has_lora_adapter(config.FINAL_DIR):
+        print(f"Loading base model + LoRA adapter from {config.FINAL_DIR} ...")
+        try:
+            model = _load_base()
+
+            transformer = model._first_module()
+            backbone = getattr(transformer, "auto_model", None) or getattr(
+                transformer, "model"
+            )
+
+            # Load the saved LoRA weights onto the backbone
+            backbone = PeftModel.from_pretrained(backbone, config.FINAL_DIR)
+            backbone.set_adapter(config.TRAIN_ADAPTER)
+
+            # Patch the forward pass so pooling uses the adapter (mirrors train)
+            def _adapted_forward(self, features, task=None, truncate_dim=None):
+                bb = getattr(self, "auto_model", None) or getattr(self, "model")
+                device = next(bb.parameters()).device
+                batch = {
+                    k: v.to(device) for k, v in features.items() if torch.is_tensor(v)
+                }
+                outputs = bb(**batch)
+                hidden = outputs.last_hidden_state
+                mask = batch.get("attention_mask")
+                if mask is None:
+                    pooled = hidden[:, -1]
+                else:
+                    seq_len = mask.sum(dim=1) - 1
+                    pooled = hidden[
+                        torch.arange(hidden.shape[0], device=hidden.device), seq_len
+                    ]
+                if truncate_dim is not None:
+                    pooled = pooled[:, :truncate_dim]
+                features["sentence_embedding"] = F.normalize(pooled, p=2, dim=1)
+                return features
+
+            transformer.forward = types.MethodType(_adapted_forward, transformer)
+
+            print("  ✓ Fine-tuned model (LoRA) loaded successfully.\n")
+            return model
+
+        except Exception as exc:
+            print(f"  ✗ Failed to load LoRA adapter: {exc}")
+            print("  Falling back to base pre-trained model.\n")
+            return _load_base()
+
+    # ── Case 3: no checkpoint found ───────────────────────────────────────────
+    print(
+        f"No fine-tuned checkpoint found at '{config.FINAL_DIR}'.\n"
+        f"  Run train.py first, then retry.\n"
+        f"  Falling back to base pre-trained model: {config.MODEL_ID}\n"
+    )
+    return _load_base()
 
 
 def embed(model: SentenceTransformer, texts: list[str]) -> torch.Tensor:
