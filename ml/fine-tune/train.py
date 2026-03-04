@@ -17,7 +17,7 @@ from sentence_transformers.losses import MatryoshkaLoss, MultipleNegativesRankin
 from model import load_model
 
 # ── HuggingFace auth ──────────────────────────────────────────────────────
-login(token=os.environ["HF_TOKEN"], add_to_git_credential=False)
+login(os.getenv("HF_TOKEN"))
 
 print("Load dataset from disk: ...")
 

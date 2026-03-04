@@ -15,7 +15,7 @@ from sentence_transformers import SentenceTransformer
 from sentence_transformers.util import semantic_search
 
 # ── HuggingFace auth ──────────────────────────────────────────────────────
-login(token=os.environ["HF_TOKEN"], add_to_git_credential=False)
+login(os.getenv("HF_TOKEN"))
 
 random.seed(config.SEED)
 
