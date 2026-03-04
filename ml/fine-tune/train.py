@@ -173,14 +173,11 @@ try:
     trainer.train()
 except Exception:
     print("Training interrupted — saving checkpoint...")
-    trainer.save_state()
     raise
 
-# ── 7. Save LoRA weights ─────────────────────────────────────────────────────
-print("Saving LoRA weights...")
-transformer_module = model._first_module()
-backbone = getattr(transformer_module, "auto_model", None) or getattr(
-    transformer_module, "model"
-)
-backbone.save_pretrained(config.CHECKPOINT_DIR)
-print(f"LoRA adapter saved to {config.CHECKPOINT_DIR}")
+# ── 7. Save final LoRA weights ───────────────────────────────────────────────
+# Reuse LoRATrainer._save() — backbone.save_pretrained() raises NotImplementedError
+# for JinaEmbeddingsV5Model (PeftMixedModel limitation).
+print("Saving final LoRA adapter...")
+trainer._save(config.FINAL_DIR)
+print(f"LoRA adapter saved to {config.FINAL_DIR}")

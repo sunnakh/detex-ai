@@ -10,12 +10,12 @@ FINAL_DIR = "./checkpoints/jina-v5-ai-detection-final"
 DATASET_PATH = ".data/processed/fine-tune"  # saved by part_01, loaded by part_03
 
 # ── Data caps ──────────────────────────────────────────────────────────────
-HC3_CAP = 100_000
-MAGE_CAP = 100_000
-RAID_CAP = 50_000
-PILE_CAP = 100_000
-HARD_NEG_CAP = 100_000
-HARD_NEG_RATIO = 0.30
+HC3_CAP = 15_000
+MAGE_CAP = 15_000
+RAID_CAP = 10_000
+PILE_CAP = 10_000
+HARD_NEG_CAP = 15_000   # 30% of 50K base
+HARD_NEG_RATIO = 0.30   # final dataset: 50K base + 15K hard neg = ~65K
 
 # ── Text constraints ───────────────────────────────────────────────────────
 MIN_TEXT_LEN = 150
@@ -28,12 +28,12 @@ LORA_DROPOUT = 0.05
 LORA_TARGETS = ["q_proj", "v_proj", "k_proj", "o_proj"]
 
 # ── Training ───────────────────────────────────────────────────────────────
-EPOCHS = 3
+EPOCHS = 1
 BATCH_SIZE = 4
 GRAD_ACCUM = 4  # effective batch = 16
 MAX_SEQ_LENGTH = 256  # caps tokenizer — Jina v5 defaults to 8192 which causes OOM
 LEARNING_RATE = 2e-4
-WARMUP_STEPS = 6942  # ~10% of 69,417 total steps (replaces deprecated warmup_ratio)
+WARMUP_STEPS = 312   # ~10% of ~3,125 total steps (50K samples, 1 epoch, batch 4, grad_accum 4)
 WEIGHT_DECAY = 0.01
 MAX_GRAD_NORM = 1.0
 EVAL_STEPS = 200
