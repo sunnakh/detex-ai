@@ -1,9 +1,10 @@
 # fine_tune.py — converted from jina-fine-tuning.ipynb
 
-# import finetuner
+import finetuner
 from transformers import Trainer, TrainingArguments
 from huggingface_hub import login
 from datasets import load_dataset, concatenate_datasets
+
 
 # ---------------------------------------------------------------------------
 anchors, positives, negatives = [], [], []
