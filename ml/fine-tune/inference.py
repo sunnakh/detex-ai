@@ -76,6 +76,11 @@ def predict(model: SentenceTransformer, text: str) -> dict:
     ai_score = F.cosine_similarity(q_emb.unsqueeze(0), ai_embs).mean().item()
     margin = abs(human_score - ai_score)
 
+    # Normalise the two scores so they sum to 100 %
+    total = human_score + ai_score
+    human_pct = (human_score / total * 100) if total > 0 else 50.0
+    ai_pct = 100.0 - human_pct
+
     verdict = "HUMAN" if human_score > ai_score else "AI-GENERATED"
     confidence = "high" if margin > config.CONFIDENCE_THRESHOLD else "low"
 
@@ -85,18 +90,30 @@ def predict(model: SentenceTransformer, text: str) -> dict:
         "margin": round(margin, 4),
         "human_score": round(human_score, 4),
         "ai_score": round(ai_score, 4),
+        "human_pct": round(human_pct, 1),
+        "ai_pct": round(ai_pct, 1),
     }
 
 
 def print_result(result: dict):
     sep = "=" * 50
+    verdict = result["verdict"]
+    conf = result["confidence"].upper()
+    human_pct = result["human_pct"]
+    ai_pct = result["ai_pct"]
+
+    # Progress-bar style indicator (40 chars wide)
+    bar_width = 40
+    human_fill = round(bar_width * human_pct / 100)
+    ai_fill = bar_width - human_fill
+    bar = "H" * human_fill + "A" * ai_fill
+
     print(f"\n{sep}")
-    print(f"  Human score  : {result['human_score']}")
-    print(f"  AI score     : {result['ai_score']}")
-    print(f"  Margin       : {result['margin']}")
+    print(f"  Human        : {human_pct:5.1f}%")
+    print(f"  AI-Generated : {ai_pct:5.1f}%")
+    print(f"  [{bar}]")
     print(f"{sep}")
-    print(f"  Verdict      : {result['verdict']}")
-    print(f"  Confidence   : {result['confidence']}")
+    print(f"  Verdict      : {verdict}  [{conf} confidence]")
     print(f"{sep}\n")
 
 
