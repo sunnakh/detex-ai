@@ -14,11 +14,11 @@ FINAL_DIR = os.path.join(_ROOT, "checkpoints", "jina-v5-ai-detection-final")
 DATASET_PATH = ".data/processed/fine-tune"  # saved by part_01, loaded by part_03
 
 # ── Data caps ──────────────────────────────────────────────────────────────
-HC3_CAP = 500
-MAGE_CAP = 500
-RAID_CAP = 500
-PILE_CAP = 500
-HARD_NEG_CAP = 600  # 60% of 50K base
+HC3_CAP = 100_000
+MAGE_CAP = 100_000
+RAID_CAP = 50_000
+PILE_CAP = 100_000
+HARD_NEG_CAP = 100_000  # 60% of 50K base
 HARD_NEG_RATIO = 0.30  # final dataset: 50K base + 15K hard neg = ~65K
 
 # ── Text constraints ───────────────────────────────────────────────────────
@@ -32,7 +32,7 @@ LORA_DROPOUT = 0.05
 LORA_TARGETS = ["q_proj", "v_proj", "k_proj", "o_proj"]
 
 # ── Training ───────────────────────────────────────────────────────────────
-EPOCHS = 1
+EPOCHS = 2
 BATCH_SIZE = 4
 GRAD_ACCUM = 4  # effective batch = 16
 MAX_SEQ_LENGTH = 256  # caps tokenizer — Jina v5 defaults to 8192 which causes OOM
