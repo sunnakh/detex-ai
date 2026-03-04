@@ -14,11 +14,11 @@ FINAL_DIR = os.path.join(_ROOT, "checkpoints", "jina-v5-ai-detection-final")
 DATASET_PATH = ".data/processed/fine-tune"  # saved by part_01, loaded by part_03
 
 # ── Data caps ──────────────────────────────────────────────────────────────
-HC3_CAP = 15_000
-MAGE_CAP = 15_000
-RAID_CAP = 10_000
-PILE_CAP = 10_000
-HARD_NEG_CAP = 15_000  # 30% of 50K base
+HC3_CAP = 500
+MAGE_CAP = 500
+RAID_CAP = 500
+PILE_CAP = 500
+HARD_NEG_CAP = 600  # 60% of 50K base
 HARD_NEG_RATIO = 0.30  # final dataset: 50K base + 15K hard neg = ~65K
 
 # ── Text constraints ───────────────────────────────────────────────────────
