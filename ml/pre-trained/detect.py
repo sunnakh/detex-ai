@@ -205,31 +205,27 @@ def main():
     device = get_device()
     model = load_model(device)
 
+    print("  Type or paste text, press Enter twice to analyze.")
+    print("  Type  q  or  quit  to exit.\n")
+
     while True:
         print("─" * 52)
-        print("  [1] Analyze text")
-        print("  [2] Quit")
-        print("─" * 52)
-        choice = input("  >> ").strip()
+        text = get_text_input().strip()
 
-        if choice in ("2", "q", "quit", "exit"):
+        if text.lower() in ("q", "quit", "exit"):
             print("\n  👋 Bye!\n")
             sys.exit(0)
 
-        if choice == "1":
-            text = get_text_input()
-            text = text.strip()
+        if not text:
+            continue
 
-            if len(text) < MIN_CHARS:
-                print(f"\n  ⚠  Text too short (min {MIN_CHARS} chars). Try again.\n")
-                continue
+        if len(text) < MIN_CHARS:
+            print(f"\n  ⚠  Text too short (min {MIN_CHARS} chars). Try again.\n")
+            continue
 
-            print("\n  Analyzing…")
-            result = predict(text, model)
-            print_result(result)
-
-        else:
-            print("  ⚠  Invalid option. Enter 1 or 2.\n")
+        print("\n  Analyzing…")
+        result = predict(text, model)
+        print_result(result)
 
 
 if __name__ == "__main__":

@@ -12,19 +12,31 @@ import config
 # This guarantees the backbone/adapter structure matches the saved weights.
 from model import load_model as _build_model_arch
 
-# ── Reference anchors ─────────────────────────────────────────────────────
-# A small set of known-human and known-AI passages used as comparison anchors.
-# Extend these with more diverse examples to improve verdict reliability.
-HUMAN_REFS = [
-    "Query: I woke up at 6am and couldn't fall back asleep. Spent an hour just staring at the ceiling, thinking about nothing in particular.",
-    "Query: Honestly, I didn't expect the movie to be that good. By the end I was crying and I'm not even sure why.",
-    "Query: We drove through three states in one day. My back was killing me but the scenery made it worth it.",
+# ── Reference anchors (identical to pre-trained/detect.py for fair comparison) ─
+HUMAN_ANCHORS = [
+    "honestly i had no idea what to do so i just winged it and somehow it worked out",
+    "ugh i woke up late again and missed the first half of the meeting, classic me",
+    "my grandma made her famous soup and i swear it cures everything, no cap",
+    "been staring at this bug for 3 hours and it turned out to be a missing semicolon lmao",
+    "the sunset tonight was wild, took like 20 photos and none of them do it justice",
+    "not sure if i should quit or keep going, just feeling stuck lately",
+    "we stayed up till 3am talking about literally everything and nothing",
+    "the coffee machine broke AGAIN and i am not okay",
+    "i hate how i always second-guess myself right before submitting something",
+    "drove past my old school today and got hit with a wave of nostalgia out of nowhere",
 ]
 
-AI_REFS = [
-    "Query: Artificial intelligence has revolutionized numerous industries by enabling machines to perform tasks that previously required human intelligence, such as image recognition and natural language processing.",
-    "Query: The importance of maintaining a balanced diet cannot be overstated. Consuming a variety of nutrient-rich foods ensures optimal bodily function and promotes long-term health outcomes.",
-    "Query: In conclusion, the implementation of sustainable practices within corporate frameworks is paramount to addressing the global climate crisis while ensuring continued economic viability.",
+AI_ANCHORS = [
+    "Artificial intelligence has revolutionized numerous industries by enabling machines to perform tasks that previously required human intelligence.",
+    "The importance of maintaining a balanced diet cannot be overstated. Consuming a variety of nutrient-rich foods ensures optimal bodily function.",
+    "In conclusion, the implementation of sustainable practices within corporate frameworks is paramount to addressing the global climate crisis.",
+    "This comprehensive analysis examines the multifaceted implications of technological advancements on contemporary societal structures.",
+    "To summarize, the evidence strongly suggests that further research is warranted to fully elucidate the underlying mechanisms.",
+    "It is worth noting that this methodology offers significant advantages over traditional approaches in terms of both efficiency and scalability.",
+    "The results of this study demonstrate a statistically significant correlation between the two variables under investigation.",
+    "Furthermore, the integration of machine learning algorithms has proven instrumental in optimizing operational workflows across diverse sectors.",
+    "This paper presents a novel framework for addressing the challenges associated with large-scale data processing in distributed environments.",
+    "In light of the aforementioned considerations, it becomes evident that a holistic approach is required to effectively mitigate these risks.",
 ]
 
 
@@ -119,109 +131,145 @@ def load_model() -> SentenceTransformer:
 
 
 def embed(model: SentenceTransformer, texts: list[str]) -> torch.Tensor:
-    return model.encode(texts, convert_to_tensor=True, normalize_embeddings=True)
+    return torch.tensor(
+        model.encode(texts, normalize_embeddings=True),
+        dtype=torch.float32,
+    )
 
 
 def predict(model: SentenceTransformer, text: str) -> dict:
     """
-    Embeds the input text and computes its avg cosine similarity
-    to human and AI reference anchors, then returns a verdict dict.
+    Identical logic to pre-trained/detect.py — only the model differs.
+    Same anchors, same normalization, same confidence thresholds.
     """
-    query = f"Query: {text.strip()[:config.MAX_TEXT_LEN]}"
+    import time
+    t0 = time.perf_counter()
 
-    all_texts = [query] + HUMAN_REFS + AI_REFS
+    all_texts = [text.strip()] + HUMAN_ANCHORS + AI_ANCHORS
     embeddings = embed(model, all_texts)
 
-    q_emb = embeddings[0]
-    human_embs = embeddings[1 : 1 + len(HUMAN_REFS)]
-    ai_embs = embeddings[1 + len(HUMAN_REFS) :]
+    q_emb      = embeddings[0]
+    human_embs = embeddings[1 : 1 + len(HUMAN_ANCHORS)]
+    ai_embs    = embeddings[1 + len(HUMAN_ANCHORS) :]
 
     human_score = F.cosine_similarity(q_emb.unsqueeze(0), human_embs).mean().item()
-    ai_score = F.cosine_similarity(q_emb.unsqueeze(0), ai_embs).mean().item()
-    margin = abs(human_score - ai_score)
+    ai_score    = F.cosine_similarity(q_emb.unsqueeze(0), ai_embs).mean().item()
+    elapsed_ms  = (time.perf_counter() - t0) * 1000
 
-    # Normalise the two scores so they sum to 100 %
-    total = human_score + ai_score
+    # Normalize so ai_pct + human_pct = 100%
+    total     = human_score + ai_score
     human_pct = (human_score / total * 100) if total > 0 else 50.0
-    ai_pct = 100.0 - human_pct
+    ai_pct    = 100.0 - human_pct
+    margin_pct = abs(ai_pct - human_pct)
 
-    verdict = "HUMAN" if human_score > ai_score else "AI-GENERATED"
-    confidence = "high" if margin > config.CONFIDENCE_THRESHOLD else "low"
+    if margin_pct < 5:
+        verdict    = "UNCERTAIN"
+        confidence = "low"
+    elif human_score > ai_score:
+        verdict    = "HUMAN-WRITTEN"
+        confidence = "high" if margin_pct > 20 else "medium"
+    else:
+        verdict    = "AI-GENERATED"
+        confidence = "high" if margin_pct > 20 else "medium"
 
     return {
-        "verdict": verdict,
+        "verdict":    verdict,
         "confidence": confidence,
-        "margin": round(margin, 4),
-        "human_score": round(human_score, 4),
-        "ai_score": round(ai_score, 4),
-        "human_pct": round(human_pct, 1),
-        "ai_pct": round(ai_pct, 1),
+        "human_pct":  round(human_pct,  2),
+        "ai_pct":     round(ai_pct,     2),
+        "margin_pct": round(margin_pct, 2),
+        "elapsed_ms": round(elapsed_ms, 1),
+        "word_count": len(text.split()),
+        "char_count": len(text),
     }
 
 
-def print_result(result: dict):
-    sep = "=" * 50
-    verdict = result["verdict"]
-    conf = result["confidence"].upper()
-    human_pct = result["human_pct"]
-    ai_pct = result["ai_pct"]
-
-    # Progress-bar style indicator (40 chars wide)
-    bar_width = 40
-    human_fill = round(bar_width * human_pct / 100)
-    ai_fill = bar_width - human_fill
-    bar = "H" * human_fill + "A" * ai_fill
-
-    print(f"\n{sep}")
-    print(f"  Human        : {human_pct:5.1f}%")
-    print(f"  AI-Generated : {ai_pct:5.1f}%")
-    print(f"  [{bar}]")
-    print(f"{sep}")
-    print(f"  Verdict      : {verdict}  [{conf} confidence]")
-    print(f"{sep}\n")
+# ── Pretty print (identical to pre-trained/detect.py) ────────────────────────
+VERDICT_COLORS = {
+    "AI-GENERATED":  "\033[91m",  # red
+    "HUMAN-WRITTEN": "\033[92m",  # green
+    "UNCERTAIN":     "\033[93m",  # yellow
+}
+RESET = "\033[0m"
+BOLD  = "\033[1m"
+CONFIDENCE_ICONS = {"high": "●●●", "medium": "●●○", "low": "●○○"}
 
 
-def get_multiline_input() -> str:
-    """
-    Lets the user paste or type multi-line text.
-    They type END on a new line to finish.
-    """
-    print("\nPaste or type your text below.")
-    print("When done, type  END  on a new line and press Enter:\n")
+def print_result(r: dict):
+    color     = VERDICT_COLORS.get(r["verdict"], "")
+    icon      = CONFIDENCE_ICONS.get(r["confidence"], "○○○")
+    bar_ai    = "█" * int(r["ai_pct"]    / 100 * 30)
+    bar_human = "█" * int(r["human_pct"] / 100 * 30)
+
+    print()
+    print("╔══════════════════════════════════════════════════╗")
+    print(f"  {BOLD}Verdict   :{RESET}  {color}{BOLD}{r['verdict']}{RESET}")
+    print(f"  Confidence:  {icon}  ({r['confidence']})")
+    print("╠══════════════════════════════════════════════════╣")
+    print(f"  AI score    {r['ai_pct']:>6.2f}%  │{bar_ai:<30}│")
+    print(f"  Human score {r['human_pct']:>6.2f}%  │{bar_human:<30}│")
+    print(f"  Margin      {r['margin_pct']:>6.2f}%")
+    print("╠══════════════════════════════════════════════════╣")
+    print(
+        f"  Words: {r['word_count']}   Chars: {r['char_count']}   Time: {r['elapsed_ms']} ms"
+    )
+    print("╚══════════════════════════════════════════════════╝")
+    print()
+
+
+# ── Input helper (identical to pre-trained/detect.py) ────────────────────────
+def get_text_input() -> str:
+    print()
+    print("  Paste or type your text, then press Enter twice to analyze:\n")
     lines = []
     while True:
-        line = input()
-        if line.strip().upper() == "END":
+        try:
+            line = input("  │ ")
+        except EOFError:
+            break
+        if line.strip() == "" and lines and lines[-1].strip() == "":
             break
         lines.append(line)
+    while lines and lines[-1].strip() == "":
+        lines.pop()
     return "\n".join(lines)
 
 
-# ── Interactive loop ──────────────────────────────────────────────────────
+# ── Main REPL ─────────────────────────────────────────────────────────────────
+BANNER = r"""
+  ██████╗ ███████╗████████╗███████╗██╗  ██╗
+  ██╔══██╗██╔════╝╚══██╔══╝██╔════╝╚██╗██╔╝
+  ██║  ██║█████╗     ██║   █████╗   ╚███╔╝
+  ██║  ██║██╔══╝     ██║   ██╔══╝   ██╔██╗
+  ██████╔╝███████╗   ██║   ███████╗██╔╝ ██╗
+  ╚═════╝ ╚══════╝   ╚═╝   ╚══════╝╚═╝  ╚═╝
+  AI Text Detector  ·  Jina v5 Small (fine-tuned)
+"""
+
 if __name__ == "__main__":
+    import sys
+    print(BANNER)
     model = load_model()
-    print("\nModel loaded. Ready to detect.\n")
+    print("Model loaded. Ready to detect.\n")
+
+    print("  Type or paste text, press Enter twice to analyze.")
+    print("  Type  q  or  quit  to exit.\n")
 
     while True:
-        print("─ " * 50)
-        print("Options:  [1] Check text   [2] Quit")
-        choice = input(">> ").strip()
+        print("─" * 52)
+        text = get_text_input().strip()
 
-        if choice == "2" or choice.lower() in ("q", "quit", "exit"):
-            print("Bye.")
-            break
+        if text.lower() in ("q", "quit", "exit"):
+            print("\n  👋 Bye!\n")
+            sys.exit(0)
 
-        if choice == "1":
-            text = get_multiline_input()
+        if not text:
+            continue
 
-            if len(text.strip()) < config.MIN_TEXT_LEN:
-                print(
-                    f"\nText too short. Minimum {config.MIN_TEXT_LEN} characters required.\n"
-                )
-                continue
+        if len(text) < config.MIN_TEXT_LEN:
+            print(f"\n  ⚠  Text too short (min {config.MIN_TEXT_LEN} chars). Try again.\n")
+            continue
 
-            print("\nAnalyzing...")
-            result = predict(model, text)
-            print_result(result)
-        else:
-            print("Invalid option. Enter 1 or 2.")
+        print("\n  Analyzing…")
+        result = predict(model, text)
+        print_result(result)
