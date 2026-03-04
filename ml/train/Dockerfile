@@ -1,6 +1,6 @@
 # ── Stage 1: base image ──────────────────────────────────────────────────────
-# PyTorch runtime for embedding — no CUDA compilation needed for classifiers.
-FROM pytorch/pytorch:2.4.1-cuda12.1-cudnn9-runtime
+# PyTorch 2.6+ with CUDA 12.4 — required for RTX 5090 (Blackwell, sm_120).
+FROM pytorch/pytorch:2.6.0-cuda12.4-cudnn9-runtime
 
 # ── System deps ───────────────────────────────────────────────────────────────
 RUN apt-get update && apt-get install -y --no-install-recommends \
