@@ -5,6 +5,9 @@ import random
 import config
 from pathlib import Path
 
+from dotenv import load_dotenv
+load_dotenv(Path(__file__).resolve().parents[2] / ".env")
+
 import torch
 from datasets import Dataset, concatenate_datasets, load_dataset
 from huggingface_hub import hf_hub_download, list_repo_files, login
@@ -12,9 +15,7 @@ from sentence_transformers import SentenceTransformer
 from sentence_transformers.util import semantic_search
 
 # ── HuggingFace auth ──────────────────────────────────────────────────────
-# Set HF_TOKEN env var, or replace the string below with your token
-_hf_token = os.environ.get("HF_TOKEN", "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")
-login(token=_hf_token, add_to_git_credential=False)
+login(token=os.environ["HF_TOKEN"], add_to_git_credential=False)
 
 random.seed(config.SEED)
 

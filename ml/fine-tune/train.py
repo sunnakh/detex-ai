@@ -1,6 +1,9 @@
 import os
 from pathlib import Path
 
+from dotenv import load_dotenv
+load_dotenv(Path(__file__).resolve().parents[2] / ".env")
+
 from sentence_transformers import (
     SentenceTransformerTrainer,
     SentenceTransformerTrainingArguments,
@@ -14,8 +17,7 @@ from sentence_transformers.losses import MatryoshkaLoss, MultipleNegativesRankin
 from model import load_model
 
 # ── HuggingFace auth ──────────────────────────────────────────────────────
-_hf_token = os.environ.get("HF_TOKEN", "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")
-login(token=_hf_token, add_to_git_credential=False)
+login(token=os.environ["HF_TOKEN"], add_to_git_credential=False)
 
 print("Load dataset from disk: ...")
 
