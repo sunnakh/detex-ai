@@ -76,6 +76,10 @@ def load_model() -> SentenceTransformer:
     total = sum(p.numel() for p in model.parameters())
     print(f"Trainable: {trainable:,} / {total:,} ({100 * trainable / total:.2f}%)")
 
+    # ──  Cap sequence length to reduce memory usage ──────────────────────
+    model.max_seq_length = config.MAX_SEQ_LENGTH
+    print(f"max_seq_length set to {config.MAX_SEQ_LENGTH}")
+
     return model
 
 

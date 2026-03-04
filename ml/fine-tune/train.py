@@ -2,6 +2,9 @@ import os
 import gc
 from pathlib import Path
 
+# Reduce CUDA memory fragmentation (recommended in OOM error message)
+os.environ.setdefault("PYTORCH_ALLOC_CONF", "expandable_segments:True")
+
 import torch
 
 from dotenv import load_dotenv
@@ -45,6 +48,10 @@ print(f"Train: {len(train_ds):,} | Eval: {len(eval_ds):,}")
 
 model = load_model()
 
+# Enforce sequence length cap — without this the tokenizer uses the model's
+# default max (8192 for Jina v5), which destroys VRAM at training time.
+model.max_seq_length = config.MAX_SEQ_LENGTH
+
 torch.cuda.empty_cache()
 gc.collect()
 
@@ -87,7 +94,8 @@ args = SentenceTransformerTrainingArguments(
     weight_decay=config.WEIGHT_DECAY,
     max_grad_norm=config.MAX_GRAD_NORM,
     bf16=True,
-    gradient_checkpointing=False,  # incompatible with manual PEFT injection
+    gradient_checkpointing=True,
+    gradient_checkpointing_kwargs={"use_reentrant": False},
     dataloader_num_workers=0,  # avoids pickling error with patched forward
     eval_strategy="steps",
     eval_steps=config.EVAL_STEPS,
