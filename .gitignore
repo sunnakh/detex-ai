@@ -110,7 +110,7 @@ package-lock.json
 # some folders
 testing
 transformers
-notebooks
+# notebooks
 test.py
 azure-ml
 archive
