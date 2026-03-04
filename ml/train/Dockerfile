@@ -13,8 +13,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # of any source-file changes.
 WORKDIR /app
 
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir \
+RUN pip install --no-cache-dir --root-user-action=ignore --upgrade pip && \
+    pip install --no-cache-dir --root-user-action=ignore \
         # Embedding
         sentence-transformers>=3.0.0 \
         transformers>=4.40.0 \

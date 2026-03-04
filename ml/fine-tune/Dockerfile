@@ -16,8 +16,8 @@ WORKDIR /app
 
 COPY requirements.txt /app/requirements.txt
 
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir \
+RUN pip install --no-cache-dir --root-user-action=ignore --upgrade pip && \
+    pip install --no-cache-dir --root-user-action=ignore \
         # Core ML
         torch>=2.0.0 \
         transformers>=4.40.0 \
