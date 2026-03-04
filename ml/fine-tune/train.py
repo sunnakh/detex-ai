@@ -23,6 +23,25 @@ from sentence_transformers.evaluation import InformationRetrievalEvaluator
 from sentence_transformers.losses import MatryoshkaLoss, MultipleNegativesRankingLoss
 from model import load_model
 
+
+class LoRATrainer(SentenceTransformerTrainer):
+    """Overrides _save to use PEFT's save_pretrained instead of the
+    sentence-transformers module.save() path, which breaks when the
+    Transformer module is PEFT-wrapped and lacks a .save() method."""
+
+    def _save(self, output_dir: str | None = None, state_dict=None):
+        output_dir = output_dir or self.args.output_dir
+        os.makedirs(output_dir, exist_ok=True)
+        transformer_module = self.model._first_module()
+        backbone = getattr(transformer_module, "auto_model", None) or getattr(
+            transformer_module, "model"
+        )
+        backbone.save_pretrained(output_dir)
+        # Also save the tokenizer so the checkpoint is self-contained
+        tokenizer = getattr(transformer_module, "tokenizer", None)
+        if tokenizer is not None:
+            tokenizer.save_pretrained(output_dir)
+
 # ── HuggingFace auth ──────────────────────────────────────────────────────
 login(os.getenv("HF_TOKEN"))
 
@@ -108,7 +127,7 @@ args = SentenceTransformerTrainingArguments(
 )
 
 # ── 6. Train ──────────────────────────────────────────────────────────────
-trainer = SentenceTransformerTrainer(
+trainer = LoRATrainer(
     model=model,
     args=args,
     train_dataset=train_ds,
