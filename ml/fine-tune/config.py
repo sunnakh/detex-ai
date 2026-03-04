@@ -6,10 +6,11 @@ MODEL_ID = "jinaai/jina-embeddings-v5-text-small"
 TRAIN_ADAPTER = "ai_detection"
 
 # ── Paths ──────────────────────────────────────────────────────────────────
-# Paths are relative to ml/fine-tune/ (where train.py runs and saves checkpoints).
-_HERE = os.path.abspath(os.path.dirname(__file__))
-CHECKPOINT_DIR = os.path.join(_HERE, "checkpoints", "jina-v5-ai-detection")
-FINAL_DIR = os.path.join(_HERE, "checkpoints", "jina-v5-ai-detection-final")
+# Resolve paths relative to the project root (two levels up from this file),
+# so they are saved alongside backend/frontend.
+_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+CHECKPOINT_DIR = os.path.join(_ROOT, "checkpoints", "jina-v5-ai-detection")
+FINAL_DIR = os.path.join(_ROOT, "checkpoints", "jina-v5-ai-detection-final")
 DATASET_PATH = ".data/processed/fine-tune"  # saved by part_01, loaded by part_03
 
 # ── Data caps ──────────────────────────────────────────────────────────────

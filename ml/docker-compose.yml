@@ -1,0 +1,90 @@
+# ml/docker-compose.yml
+# One-shot ML training pipeline:
+#   1. fine-tune  — builds dataset + LoRA-fine-tunes Jina v5 Small → writes to /app/checkpoints
+#   2. train      — embeds, trains classifiers, selects best, tunes threshold → writes to /app/ml/train/artifacts
+#
+# Usage (run from project root):
+#   docker compose -f ml/docker-compose.yml build
+#   docker compose -f ml/docker-compose.yml up
+#
+# Both services exit with code 0 when done — they are one-shot jobs, not daemons.
+# GPU is required. If running CPU-only, remove the `deploy` blocks below.
+
+services:
+  # ── Step 1: LoRA fine-tuning ──────────────────────────────────────────────
+  fine-tune:
+    build:
+      # Context must be project root so COPY ml/fine-tune/ and COPY requirements.txt work
+      context: ..
+      dockerfile: ml/fine-tune/Dockerfile
+    image: detex-fine-tune
+    container_name: detex-fine-tune
+    command: >
+      bash -c "python data_pipeline.py && python train.py"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    environment:
+      HF_HUB_DISABLE_SYMLINKS_WARNING: "1"
+      HF_HOME: /app/.cache/huggingface
+      TOKENIZERS_PARALLELISM: "false"
+      PYTORCH_ALLOC_CONF: expandable_segments:True
+    volumes:
+      # Dataset cache — avoids re-download on re-runs
+      - ft_data:/app/ml/fine-tune/.data
+      # LoRA checkpoint output → shared with train service below
+      - checkpoints:/app/checkpoints
+      # HF model cache → shared with train service below
+      - hf_cache:/app/.cache
+    restart: "no"
+
+  # ── Step 2: Classifier pipeline ───────────────────────────────────────────
+  train:
+    build:
+      context: ..
+      dockerfile: ml/train/Dockerfile
+    image: detex-train
+    container_name: detex-train
+    # CMD in Dockerfile already runs all 6 steps in order
+    depends_on:
+      fine-tune:
+        # Only start after fine-tune exits successfully (code 0)
+        condition: service_completed_successfully
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    environment:
+      HF_HUB_DISABLE_SYMLINKS_WARNING: "1"
+      HF_HOME: /app/.cache/huggingface
+      TOKENIZERS_PARALLELISM: "false"
+      OMP_NUM_THREADS: "4"
+    volumes:
+      # Reads the fine-tuned LoRA checkpoint written by fine-tune service
+      - checkpoints:/app/checkpoints:ro
+      # Classifier artifacts output (embeddings, .joblib, JSON results, plots)
+      - train_artifacts:/app/ml/train/artifacts
+      # Shared HF model cache
+      - hf_cache:/app/.cache
+    restart: "no"
+
+# ── Named volumes ─────────────────────────────────────────────────────────────
+# All volumes persist between runs — useful for resuming without re-downloading.
+# To start completely fresh:
+#   docker compose -f ml/docker-compose.yml down -v
+volumes:
+  ft_data:
+    # Processed dataset for fine-tuning
+  checkpoints:
+    # LoRA adapter weights: adapter_config.json + adapter_model.safetensors
+  train_artifacts:
+    # Embeddings (.npy), classifiers (.joblib), model_selection.json, optimal_threshold.json
+  hf_cache:
+    # Hugging Face model & tokenizer downloads
