@@ -29,8 +29,8 @@ LORA_TARGETS = ["q_proj", "v_proj"]  # fewer targets = less OOM pressure
 
 # ── Training ───────────────────────────────────────────────────────────────
 EPOCHS = 3
-BATCH_SIZE = 1
-GRAD_ACCUM = 16  # effective batch = 16
+BATCH_SIZE = 4   # increased from 1 — uses VRAM freed by seq length reduction
+GRAD_ACCUM = 4   # effective batch = 4×4 = 16 (unchanged)
 MAX_SEQ_LENGTH = 256  # reduced from 512 — attention is O(n²), biggest VRAM win
 LEARNING_RATE = 2e-4
 WARMUP_RATIO = 0.1
