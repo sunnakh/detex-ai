@@ -1,12 +1,18 @@
 # part_05_classifier_data.py
-# Loads M4, TuringBench, OUTFOX → builds labeled dataset → embeds with fine-tuned Jina → saves
+# Loads AI-Detection-Pile, TuringBench, Human-AI-Generated-Text → builds labeled dataset
+# → embeds with fine-tuned Jina → saves
 # OUTPUT: ./artifacts/clf_X_train.npy, clf_X_test.npy, clf_y_train.npy, clf_y_test.npy
+#
+# Datasets (all public, no token needed):
+#   artem9k/ai-text-detection-pile  — TEXT / SOURCE ("human"|"ai")         ~1.4M rows
+#   turingbench/TuringBench         — Generation / label ("human"|<model>) ~10k rows
+#   dmitva/human_ai_generated_text  — human_text / ai_text pairs           ~1M rows
 
 import os
 import random
 
 import numpy as np
-from datasets import concatenate_datasets, load_dataset
+from datasets import load_dataset
 from sentence_transformers import SentenceTransformer
 from sklearn.model_selection import train_test_split
 
@@ -31,35 +37,36 @@ def build_dataset() -> tuple[list, list]:
     labels: list[int] = []
 
     # ---------------------------------------------------------------------------
-    # M4 — 6 generators × 4 domains — best diversity for classifier training
+    # AI-Text-Detection-Pile — GPT2/GPT3/ChatGPT/GPTJ + Reddit/WebText human text
+    # Fields: TEXT (str), SOURCE ("human" | "ai")
     # ---------------------------------------------------------------------------
 
     print(SEP)
-    print("Loading M4 dataset: ...")
+    print("Loading AI-Text-Detection-Pile dataset: ...")
 
-    M4_CAP = 80_000
-    m4 = load_dataset("NLP4TAS/M4", split="train")
-    m4_human, m4_ai = [], []
+    PILE_CAP = 80_000
+    pile = load_dataset("artem9k/ai-text-detection-pile", split="train")
+    pile_human, pile_ai = [], []
 
-    for x in m4:
-        text = x.get("text", "").strip()
+    for x in pile:
+        text = (x.get("TEXT") or "").strip()
         if len(text) < config.MIN_TEXT_LEN:
             continue
-        if x["label"] == 0:
-            m4_human.append(text)
+        if (x.get("SOURCE") or "").lower() == "human":
+            pile_human.append(text)
         else:
-            m4_ai.append(text)
+            pile_ai.append(text)
 
-    random.shuffle(m4_human)
-    random.shuffle(m4_ai)
+    random.shuffle(pile_human)
+    random.shuffle(pile_ai)
 
-    for t in m4_human[:M4_CAP]:
+    for t in pile_human[:PILE_CAP]:
         add_sample(texts, labels, t, 0)
-    for t in m4_ai[:M4_CAP]:
+    for t in pile_ai[:PILE_CAP]:
         add_sample(texts, labels, t, 1)
 
     print(
-        f"M4 added {len(m4_human[:M4_CAP])} human + {len(m4_ai[:M4_CAP])} AI | Running total: {len(texts)}"
+        f"AI-Detection-Pile added {len(pile_human[:PILE_CAP])} human + {len(pile_ai[:PILE_CAP])} AI | Running total: {len(texts)}"
     )
 
     # ---------------------------------------------------------------------------
@@ -95,36 +102,35 @@ def build_dataset() -> tuple[list, list]:
     )
 
     # ---------------------------------------------------------------------------
-    # OUTFOX — adversarial: humans fooling detectors, AI mimicking humans
-    # Without this, classifiers fail on paraphrased/edited AI text in production
+    # Human-AI-Generated-Text — paired rows: each row has human_text + ai_text
+    # Fields: human_text (str), ai_text (str) — 1M paired rows
     # ---------------------------------------------------------------------------
 
     print(SEP)
-    print("Loading OUTFOX dataset: ...")
+    print("Loading Human-AI-Generated-Text dataset: ...")
 
-    OUTFOX_CAP = 30_000
-    outfox = load_dataset("ryokan76/outfox", split="train")
-    outfox_human, outfox_ai = [], []
+    HAGT_CAP = 30_000  # per class — 30k human + 30k AI
+    hagt = load_dataset("dmitva/human_ai_generated_text", split="train")
+    hagt_human, hagt_ai = [], []
 
-    for x in outfox:
-        text = x.get("text", "").strip()
-        if len(text) < config.MIN_TEXT_LEN:
-            continue
-        if x["label"] == 0:
-            outfox_human.append(text)
-        else:
-            outfox_ai.append(text)
+    for x in hagt:
+        h = (x.get("human_text") or "").strip()
+        a = (x.get("ai_text") or "").strip()
+        if len(h) >= config.MIN_TEXT_LEN:
+            hagt_human.append(h)
+        if len(a) >= config.MIN_TEXT_LEN:
+            hagt_ai.append(a)
 
-    random.shuffle(outfox_human)
-    random.shuffle(outfox_ai)
+    random.shuffle(hagt_human)
+    random.shuffle(hagt_ai)
 
-    for t in outfox_human[:OUTFOX_CAP]:
+    for t in hagt_human[:HAGT_CAP]:
         add_sample(texts, labels, t, 0)
-    for t in outfox_ai[:OUTFOX_CAP]:
+    for t in hagt_ai[:HAGT_CAP]:
         add_sample(texts, labels, t, 1)
 
     print(
-        f"OUTFOX added {len(outfox_human[:OUTFOX_CAP])} human + {len(outfox_ai[:OUTFOX_CAP])} AI | Running total: {len(texts)}"
+        f"Human-AI-Text added {len(hagt_human[:HAGT_CAP])} human + {len(hagt_ai[:HAGT_CAP])} AI | Running total: {len(texts)}"
     )
 
     print(SEP)
@@ -153,7 +159,7 @@ if __name__ == "__main__":
     embedder = SentenceTransformer(config.FINAL_DIR, trust_remote_code=True)
     X = embedder.encode(
         texts,
-        batch_size=64,
+        batch_size=32,
         show_progress_bar=True,
         normalize_embeddings=True,
     )
