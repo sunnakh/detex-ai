@@ -4,9 +4,9 @@
 # OUTPUT: ./artifacts/clf_X_train.npy, clf_X_test.npy, clf_y_train.npy, clf_y_test.npy
 #
 # Datasets (all public, no token needed):
-#   artem9k/ai-text-detection-pile  — TEXT / SOURCE ("human"|"ai")         ~1.4M rows
-#   turingbench/TuringBench         — Generation / label ("human"|<model>) ~10k rows
-#   dmitva/human_ai_generated_text  — human_text / ai_text pairs           ~1M rows
+#   artem9k/ai-text-detection-pile  — text / source ("human"|"ai")           ~1.4M rows
+#   Hello-SimpleAI/HC3              — human_answers / chatgpt_answers lists   ~24k rows
+#   dmitva/human_ai_generated_text  — human_text / ai_text pairs              ~1M rows
 
 import os
 import random
@@ -38,7 +38,7 @@ def build_dataset() -> tuple[list, list]:
 
     # ---------------------------------------------------------------------------
     # AI-Text-Detection-Pile — GPT2/GPT3/ChatGPT/GPTJ + Reddit/WebText human text
-    # Fields: TEXT (str), SOURCE ("human" | "ai")
+    # Fields: text (str), source ("human" | "ai")
     # ---------------------------------------------------------------------------
 
     print(SEP)
@@ -49,10 +49,10 @@ def build_dataset() -> tuple[list, list]:
     pile_human, pile_ai = [], []
 
     for x in pile:
-        text = (x.get("TEXT") or "").strip()
+        text = (x.get("text") or "").strip()
         if len(text) < config.MIN_TEXT_LEN:
             continue
-        if (x.get("SOURCE") or "").lower() == "human":
+        if (x.get("source") or "").lower() == "human":
             pile_human.append(text)
         else:
             pile_ai.append(text)
@@ -70,35 +70,39 @@ def build_dataset() -> tuple[list, list]:
     )
 
     # ---------------------------------------------------------------------------
-    # TuringBench — 19 LLMs — critical for cross-model robustness
+    # HC3 — Human ChatGPT Comparison Corpus — 24k QA pairs across 6 domains
+    # Fields: human_answers (list[str]), chatgpt_answers (list[str])
+    # TuringBench was removed: its loading script is no longer supported by
+    # newer datasets versions (RuntimeError: Dataset scripts are no longer supported)
     # ---------------------------------------------------------------------------
 
     print(SEP)
-    print("Loading TuringBench dataset: ...")
+    print("Loading HC3 dataset: ...")
 
-    TURING_CAP = 60_000
-    turing = load_dataset("turingbench/TuringBench", split="train")
-    turing_human, turing_ai = [], []
+    HC3_CAP = 60_000  # per class — dataset is ~24k rows so this is uncapped
+    hc3 = load_dataset("Hello-SimpleAI/HC3", name="all", split="train")
+    hc3_human, hc3_ai = [], []
 
-    for x in turing:
-        text = x.get("Generation", "").strip()
-        if len(text) < config.MIN_TEXT_LEN:
-            continue
-        if x["label"] == "human":
-            turing_human.append(text)
-        else:
-            turing_ai.append(text)
+    for x in hc3:
+        for ans in x.get("human_answers") or []:
+            t = (ans or "").strip()
+            if len(t) >= config.MIN_TEXT_LEN:
+                hc3_human.append(t)
+        for ans in x.get("chatgpt_answers") or []:
+            t = (ans or "").strip()
+            if len(t) >= config.MIN_TEXT_LEN:
+                hc3_ai.append(t)
 
-    random.shuffle(turing_human)
-    random.shuffle(turing_ai)
+    random.shuffle(hc3_human)
+    random.shuffle(hc3_ai)
 
-    for t in turing_human[:TURING_CAP]:
+    for t in hc3_human[:HC3_CAP]:
         add_sample(texts, labels, t, 0)
-    for t in turing_ai[:TURING_CAP]:
+    for t in hc3_ai[:HC3_CAP]:
         add_sample(texts, labels, t, 1)
 
     print(
-        f"TuringBench added {len(turing_human[:TURING_CAP])} human + {len(turing_ai[:TURING_CAP])} AI | Running total: {len(texts)}"
+        f"HC3 added {len(hc3_human[:HC3_CAP])} human + {len(hc3_ai[:HC3_CAP])} AI | Running total: {len(texts)}"
     )
 
     # ---------------------------------------------------------------------------
