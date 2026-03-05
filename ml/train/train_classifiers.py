@@ -7,9 +7,7 @@ import os
 import joblib
 import numpy as np
 from lightgbm import LGBMClassifier
-from sklearn.calibration import CalibratedClassifierCV
 from sklearn.linear_model import LogisticRegression
-from sklearn.svm import SVC
 from xgboost import XGBClassifier
 
 import config
@@ -25,16 +23,6 @@ def build_classifiers(scale_pos: float) -> dict:
             class_weight="balanced",
             random_state=config.SEED,
             n_jobs=-1,
-        ),
-        "svm": CalibratedClassifierCV(
-            SVC(
-                kernel="rbf",
-                C=1.0,
-                class_weight="balanced",
-                probability=False,
-            ),
-            cv=3,
-            method="isotonic",
         ),
         "xgboost": XGBClassifier(
             n_estimators=300,
