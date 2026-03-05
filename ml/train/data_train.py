@@ -98,15 +98,11 @@ if __name__ == "__main__":
     # Load the fine-tuned model correctly:
     # FINAL_DIR contains only LoRA adapter weights saved by LoRATrainer._save().
     # SentenceTransformer() cannot load a raw LoRA adapter dir directly.
-    # We must build the full architecture first, then apply the saved weights.
-    import sys, os as _os
-    _finetune_dir = _os.path.abspath(_os.path.join(_os.path.dirname(__file__), "..", "fine-tune"))
-    if _finetune_dir not in sys.path:
-        sys.path.insert(0, _finetune_dir)
+    import sys, os as _os, importlib, importlib.util
 
-    import importlib
-    _ft_config = importlib.import_module("config")
-    _load_model = importlib.import_module("model").load_model
+    _finetune_dir = _os.path.abspath(
+        _os.path.join(_os.path.dirname(__file__), "..", "fine-tune")
+    )
 
     adapter_path = _os.path.join(config._ROOT, "checkpoints", "jina-v5-ai-detection-final")
     adapter_exists = _os.path.isdir(adapter_path) and _os.path.isfile(
@@ -114,18 +110,41 @@ if __name__ == "__main__":
     )
 
     if adapter_exists:
-        print(f"Loading fine-tuned model from {adapter_path} ...")
+        print(f"  Loading fine-tuned model from {adapter_path} ...")
+
+        # Load ml/fine-tune/config.py under a temp name so model.py's
+        # `import config` picks up LORA_R and friends correctly.
+        _ft_cfg_spec = importlib.util.spec_from_file_location(
+            "config", _os.path.join(_finetune_dir, "config.py")
+        )
+        _ft_config = importlib.util.module_from_spec(_ft_cfg_spec)
+        _ft_cfg_spec.loader.exec_module(_ft_config)
+
+        # Temporarily replace the "config" in sys.modules so model.py uses it
+        _orig_config = sys.modules.get("config")
+        sys.modules["config"] = _ft_config
+
+        _ft_model_spec = importlib.util.spec_from_file_location(
+            "finetune_model", _os.path.join(_finetune_dir, "model.py")
+        )
+        _ft_model_mod = importlib.util.module_from_spec(_ft_model_spec)
+        _ft_model_spec.loader.exec_module(_ft_model_mod)
+        _load_model = _ft_model_mod.load_model
+
+        # Restore the train config
+        if _orig_config is not None:
+            sys.modules["config"] = _orig_config
+
         import torch
         from safetensors.torch import load_file as _load_sf
+
         embedder = _load_model()
         transformer = embedder._first_module()
         backbone = getattr(transformer, "auto_model", None) or getattr(transformer, "model")
         sf_path = _os.path.join(adapter_path, "adapter_model.safetensors")
         bin_path = _os.path.join(adapter_path, "adapter_model.bin")
-        if _os.path.isfile(sf_path):
-            saved_sd = _load_sf(sf_path, device="cpu")
-        else:
-            saved_sd = torch.load(bin_path, map_location="cpu")
+        saved_sd = _load_sf(sf_path, device="cpu") if _os.path.isfile(sf_path) else \
+                   torch.load(bin_path, map_location="cpu")
         backbone.load_state_dict(saved_sd, strict=False)
         backbone.set_adapter(_ft_config.TRAIN_ADAPTER)
         print("  ✓ Fine-tuned LoRA weights applied.")
