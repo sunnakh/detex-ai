@@ -49,7 +49,7 @@ async def lifespan(app: FastAPI):
 
     tokenizer = AutoTokenizer.from_pretrained(EMBEDDING_MODEL, trust_remote_code=True)
     model = AutoModel.from_pretrained(
-        EMBEDDING_MODEL, trust_remote_code=True, torch_dtype=dtype
+        EMBEDDING_MODEL, trust_remote_code=True, dtype=dtype
     ).to(device)
     model.eval()
 

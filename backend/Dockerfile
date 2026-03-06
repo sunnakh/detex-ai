@@ -12,7 +12,7 @@ RUN apt-get update \
 RUN pip install --no-cache-dir \
     fastapi \
     "uvicorn[standard]" \
-    "scikit-learn==1.6.1" \
+    "scikit-learn==1.8.0" \
     joblib \
     transformers \
     peft \
@@ -20,14 +20,17 @@ RUN pip install --no-cache-dir \
     "torch>=2.0.0" \
     --extra-index-url https://download.pytorch.org/whl/cpu
 
+# Pre-download the embedding model at build time so startup is instant
+ENV HF_HOME=/cache/huggingface
+RUN python -c "from transformers import AutoTokenizer, AutoModel; \
+    AutoTokenizer.from_pretrained('jinaai/jina-embeddings-v5-text-small', trust_remote_code=True); \
+    AutoModel.from_pretrained('jinaai/jina-embeddings-v5-text-small', trust_remote_code=True)"
+
 # Copy application code (context is project root per docker-compose)
 COPY backend/app/ ./app/
 
 # Copy the trained model artifact
 COPY backend/artifacts/jina-v5-finetuned/best_clf.joblib ./artifacts/jina-v5-finetuned/best_clf.joblib
-
-# HuggingFace cache (embedding model weights downloaded on first run)
-ENV HF_HOME=/cache/huggingface
 
 EXPOSE 8000
 
