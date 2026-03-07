@@ -8,39 +8,7 @@ import { createClient } from '@/lib/supabase/client';
 
 export default function SignInPage() {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-
-  const [form, setForm] = useState({ email: '', password: '' });
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-
-    const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({
-      email: form.email,
-      password: form.password,
-    });
-
-    if (error) {
-      if (error.message.toLowerCase().includes('not confirmed') || error.message.toLowerCase().includes('email')) {
-        setError('This account\'s email is not yet verified. Please contact support or try signing up again.');
-      } else if (error.message.toLowerCase().includes('invalid login')) {
-        setError('Incorrect email or password. Please try again.');
-      } else {
-        setError(error.message);
-      }
-      setLoading(false);
-    } else {
-      router.replace('/app');
-    }
-  };
 
   const signInGoogle = async () => {
     const supabase = createClient();
@@ -63,52 +31,7 @@ export default function SignInPage() {
 
         {error && <p className="auth-error">{error}</p>}
 
-        <form className="auth-form" onSubmit={handleSubmit} noValidate>
-          <div className="auth-field">
-            <label htmlFor="email">Email</label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              placeholder="you@example.com"
-              autoComplete="email"
-              required
-              value={form.email}
-              onChange={handleChange}
-            />
-          </div>
-
-          <div className="auth-field">
-            <label htmlFor="password">Password</label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              placeholder="Your password"
-              autoComplete="current-password"
-              required
-              value={form.password}
-              onChange={handleChange}
-            />
-          </div>
-
-          <div style={{textAlign:'right', marginTop:'-4px'}}>
-            <a href="#" className="auth-link" style={{fontSize:'12px'}}>Forgot password?</a>
-          </div>
-
-          <button
-            type="submit"
-            className="auth-submit-btn"
-            disabled={loading}
-            id="btn-signin"
-          >
-            {loading ? 'Signing in…' : 'Sign in'}
-          </button>
-        </form>
-
-        <div className="auth-divider">or</div>
-
-        <div className="auth-btns">
+        <div className="auth-btns" style={{ marginTop: '24px' }}>
           <button
             className="oauth-btn oauth-google"
             onClick={signInGoogle}
@@ -125,8 +48,8 @@ export default function SignInPage() {
         </p>
         <p className="auth-terms">
           By signing in you agree to our{' '}
-          <a href="#" className="auth-link">Terms</a> and{' '}
-          <a href="#" className="auth-link">Privacy Policy</a>.
+          <Link href="/terms" className="auth-link">Terms</Link> and{' '}
+          <Link href="/privacy" className="auth-link">Privacy Policy</Link>.
         </p>
       </div>
     </div>

@@ -212,6 +212,75 @@ export default function AppPage() {
     }
   }, [activeSession, loading, updateSession, ensureDbId]);
 
+  // ── Handle file upload ────────────────────────────────────────────────────
+  const handleFileUpload = useCallback(async (file: File) => {
+    if (loading || !activeSession) return;
+
+    const sessionId = activeSession.id;
+    setLoading(true);
+
+    const thinkingId = nextId();
+    const isFirst = activeSession.messages.length === 0;
+    const sessionTitle = isFirst ? file.name : activeSession.title;
+    const userLabel = `📎 ${file.name}`;
+
+    updateSession(sessionId, s => ({
+      ...s,
+      title: sessionTitle,
+      messages: [
+        ...s.messages,
+        { id: nextId(), role: 'user', text: userLabel },
+        { id: thinkingId, role: 'thinking' },
+      ],
+    }));
+
+    const dbId = await ensureDbId(sessionId);
+    if (dbId) dbSaveMessage(dbId, 'user', userLabel);
+    if (dbId && isFirst) dbUpdateSessionTitle(dbId, sessionTitle);
+
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000';
+      const form = new FormData();
+      form.append('file', file);
+
+      const res = await fetch(`${apiUrl}/detect-file`, {
+        method: 'POST',
+        body: form,
+      });
+
+      if (!res.ok) {
+        const detail = await res.json().catch(() => ({ detail: `API error ${res.status}` }));
+        throw new Error(detail.detail ?? `API error ${res.status}`);
+      }
+
+      const data: DetectResult = await res.json();
+
+      updateSession(sessionId, s => ({
+        ...s, lastResult: data,
+        messages: s.messages
+          .filter(m => m.id !== thinkingId)
+          .concat({ id: nextId(), role: 'result', result: data }),
+      }));
+
+      if (dbId) dbSaveMessage(dbId, 'result', undefined, data);
+    } catch (err: unknown) {
+      const msg = err instanceof Error
+        ? err.message
+        : `Error: ${String(err)}`;
+
+      updateSession(sessionId, s => ({
+        ...s,
+        messages: s.messages
+          .filter(m => m.id !== thinkingId)
+          .concat({ id: nextId(), role: 'error', text: msg }),
+      }));
+
+      if (dbId) dbSaveMessage(dbId, 'error', msg);
+    } finally {
+      setLoading(false);
+    }
+  }, [activeSession, loading, updateSession, ensureDbId]);
+
   const handleSignOut = async () => {
     const supabase = createClient();
     await supabase.auth.signOut();
@@ -249,7 +318,7 @@ export default function AppPage() {
           quickPrompts={QUICK_PROMPTS}
           onQuickPrompt={handleSend}
         />
-        <TextInput onSend={handleSend} disabled={loading} />
+        <TextInput onSend={handleSend} onFileUpload={handleFileUpload} disabled={loading} />
       </div>
     </div>
   );

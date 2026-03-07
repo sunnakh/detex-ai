@@ -18,6 +18,7 @@ RUN pip install --no-cache-dir \
     peft \
     xgboost \
     "torch>=2.0.0" \
+    python-multipart \
     --extra-index-url https://download.pytorch.org/whl/cpu
 
 # Pre-download the embedding model at build time so startup is instant

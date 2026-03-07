@@ -1,14 +1,17 @@
 'use client';
 
 import { useState, useRef, useCallback } from 'react';
+import FileUpload from './FileUpload';
 
 interface TextInputProps {
   onSend: (text: string) => Promise<void>;
+  onFileUpload: (file: File) => Promise<void>;
   disabled: boolean;
 }
 
-export default function TextInput({ onSend, disabled }: TextInputProps) {
+export default function TextInput({ onSend, onFileUpload, disabled }: TextInputProps) {
   const [value, setValue] = useState('');
+  const [stagedFile, setStagedFile] = useState<File | null>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
 
   const autoResize = () => {
@@ -24,12 +27,21 @@ export default function TextInput({ onSend, disabled }: TextInputProps) {
   };
 
   const submit = useCallback(async () => {
+    if (disabled) return;
+
+    // File takes priority over text
+    if (stagedFile) {
+      setStagedFile(null);
+      await onFileUpload(stagedFile);
+      return;
+    }
+
     const t = value.trim();
-    if (!t || disabled) return;
+    if (!t) return;
     setValue('');
     if (taRef.current) taRef.current.style.height = 'auto';
     await onSend(t);
-  }, [value, disabled, onSend]);
+  }, [value, stagedFile, disabled, onSend, onFileUpload]);
 
   const handleKey = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -38,22 +50,31 @@ export default function TextInput({ onSend, disabled }: TextInputProps) {
     }
   };
 
-  const canSend = value.trim().length > 0 && !disabled;
+  const canSend = (value.trim().length > 0 || stagedFile !== null) && !disabled;
 
   return (
     <div className="input-area">
       <div className="input-outer">
         <div className="input-box">
+          {/* File upload zone — sits inside the input box on the left */}
+          <div className="upload-zone">
+            <FileUpload
+              onFileSelect={setStagedFile}
+              disabled={disabled}
+              selectedFile={stagedFile}
+            />
+          </div>
+
           <textarea
             ref={taRef}
             id="text-input"
             className="input-ta"
-            placeholder="Paste or type any text to analyze…"
+            placeholder={stagedFile ? 'File ready — press Analyze to detect' : 'Paste or type any text to analyze…'}
             value={value}
             onChange={handleChange}
             onKeyDown={handleKey}
             rows={1}
-            disabled={disabled}
+            disabled={disabled || !!stagedFile}
           />
           <button
             id="send-btn"
@@ -67,7 +88,8 @@ export default function TextInput({ onSend, disabled }: TextInputProps) {
         </div>
         <p className="input-hint">
           Press <kbd className="kbd">Enter</kbd> to analyze ·{' '}
-          <kbd className="kbd">Shift+Enter</kbd> for a new line
+          <kbd className="kbd">Shift+Enter</kbd> for a new line · or upload{' '}
+          <span className="hint-formats">.txt&nbsp;.pdf&nbsp;.docx</span>
         </p>
       </div>
     </div>

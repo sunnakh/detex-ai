@@ -6,72 +6,9 @@ import { useState } from 'react';
 import LogoMark from '@/components/LogoMark';
 import { createClient } from '@/lib/supabase/client';
 
-interface PasswordStrength {
-  score: number;  // 0-4
-  label: string;
-  color: string;
-  checks: { label: string; passed: boolean }[];
-}
-
-function checkPassword(pw: string): PasswordStrength {
-  const checks = [
-    { label: 'At least 8 characters', passed: pw.length >= 8 },
-    { label: 'Uppercase letter (A–Z)',  passed: /[A-Z]/.test(pw) },
-    { label: 'Number (0–9)',            passed: /[0-9]/.test(pw) },
-    { label: 'Special character (!@#…)',passed: /[^A-Za-z0-9]/.test(pw) },
-  ];
-  const score = checks.filter(c => c.passed).length;
-  const labels = ['', 'Weak', 'Weak', 'Fair', 'Strong'];
-  const colors = ['', '#ef4444', '#ef4444', '#f59e0b', '#22c55e'];
-  return { score, label: labels[score] || '', color: colors[score] || '#ef4444', checks };
-}
-
 export default function SignUpPage() {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-
-  const [form, setForm] = useState({
-    username: '',
-    email: '',
-    password: '',
-    phone: '',
-  });
-
-  const strength = checkPassword(form.password);
-  const isPasswordValid = strength.score === 4;
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!isPasswordValid) {
-      setError('Please choose a stronger password that meets all requirements.');
-      return;
-    }
-
-    const supabase = createClient();
-    const { error } = await supabase.auth.signUp({
-      email: form.email,
-      password: form.password,
-      options: {
-        data: {
-          username: form.username,
-          phone: form.phone || null,
-        },
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
-
-    if (error && !error.message.includes('confirmation email')) {
-      setError(error.message);
-      setLoading(false);
-    } else {
-      router.replace('/');
-    }
-  };
 
   const signInGoogle = async () => {
     const supabase = createClient();
@@ -94,100 +31,7 @@ export default function SignUpPage() {
 
         {error && <p className="auth-error">{error}</p>}
 
-        <form className="auth-form" onSubmit={handleSubmit} noValidate>
-          <div className="auth-field">
-            <label htmlFor="username">Username</label>
-            <input
-              id="username"
-              name="username"
-              type="text"
-              placeholder="username"
-              autoComplete="username"
-              required
-              value={form.username}
-              onChange={handleChange}
-            />
-          </div>
-
-          <div className="auth-field">
-            <label htmlFor="email">Email</label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              placeholder="you@gmail.com"
-              autoComplete="email"
-              required
-              value={form.email}
-              onChange={handleChange}
-            />
-          </div>
-
-          <div className="auth-field">
-            <label htmlFor="password">Password</label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              placeholder="Create a strong password"
-              autoComplete="new-password"
-              required
-              value={form.password}
-              onChange={handleChange}
-            />
-            {form.password.length > 0 && (
-              <div className="pw-strength">
-                <div className="pw-strength-bar">
-                  {[1,2,3,4].map(i => (
-                    <div
-                      key={i}
-                      className="pw-strength-seg"
-                      style={{ background: i <= strength.score ? strength.color : 'var(--border)' }}
-                    />
-                  ))}
-                </div>
-                <span className="pw-strength-label" style={{ color: strength.color }}>
-                  {strength.label}
-                </span>
-                <ul className="pw-checks">
-                  {strength.checks.map(c => (
-                    <li key={c.label} style={{ color: c.passed ? '#22c55e' : 'var(--text-muted)' }}>
-                      {c.passed ? '✓' : '✗'} {c.label}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
-
-          <div className="auth-field">
-            <label htmlFor="phone">
-              Phone number <span className="auth-optional">(optional)</span>
-            </label>
-            <input
-              id="phone"
-              name="phone"
-              type="tel"
-              placeholder="+1 555 000 0000"
-              autoComplete="tel"
-              value={form.phone}
-              onChange={handleChange}
-            />
-          </div>
-
-          <button
-            type="submit"
-            className="auth-submit-btn"
-            disabled={loading || !isPasswordValid}
-            id="btn-signup"
-          >
-            {loading ? 'Creating account…' : 'Create account'}
-          </button>
-        </form>
-
-        <div className="auth-divider">or</div>
-
-        <div className="auth-btns">
+        <div className="auth-btns" style={{ marginTop: '24px' }}>
           <button
             className="oauth-btn oauth-google"
             onClick={signInGoogle}
@@ -204,8 +48,8 @@ export default function SignUpPage() {
         </p>
         <p className="auth-terms">
           By signing up you agree to our{' '}
-          <a href="#" className="auth-link">Terms</a> and{' '}
-          <a href="#" className="auth-link">Privacy Policy</a>.
+          <Link href="/terms" className="auth-link">Terms</Link> and{' '}
+          <Link href="/privacy" className="auth-link">Privacy Policy</Link>.
         </p>
       </div>
     </div>
