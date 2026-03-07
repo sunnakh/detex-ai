@@ -141,3 +141,4 @@ eval
 models
 notebooks
 backend/artifacts
+.hintrc
