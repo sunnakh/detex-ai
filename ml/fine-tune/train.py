@@ -79,7 +79,7 @@ _hf_token = os.getenv("HF_TOKEN")
 if _hf_token:
     login(token=_hf_token, add_to_git_credential=False)
 else:
-    print("⚠  HF_TOKEN not set — skipping login (model weights are public)")
+    print("HF_TOKEN not set — skipping login (model weights are public)")
 
 print("Load dataset from disk: ...")
 

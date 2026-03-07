@@ -412,20 +412,33 @@ export default function LandingPage() {
           
           {/* Uzinfocom */}
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logos/uzinfocom-dark.svg" alt="Uzinfocom" width={160} className="transition-transform hover:scale-105" style={{ height: 'auto', display: 'block' }} />
+            <a href="https://uzinfocom.uz" target="_blank" rel="noopener noreferrer">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={theme === 'dark' ? '/logos/uzinfocom-dark.svg' : '/logos/uzinfocom.svg'} alt="Uzinfocom" width={160} className="transition-transform hover:scale-105" style={{ height: 'auto', display: 'block' }} />
+            </a>
           </div>
 
-          {/* Zucco.tech */}
+          {/* sunnakh.com */}
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logos/zucco.svg" alt="Zucco.tech" width={180} className="transition-transform hover:scale-105" style={{ height: 'auto', display: 'block' }} />
+            <a href="https://sunnakh.com" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
+              <span style={{ 
+                fontSize: '26px', 
+                fontWeight: 800, 
+                letterSpacing: '-1px', 
+                color: theme === 'dark' ? '#f3f4f6' : '#111827',
+                fontFamily: 'inherit'
+              }} className="transition-transform hover:scale-105">
+                sunnakh<span style={{ color: 'var(--accent)' }}>.com</span>
+              </span>
+            </a>
           </div>
 
           {/* zehnmind.ai */}
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logos/zehnmind.png" alt="zehnmind.ai" width={160} className="transition-transform hover:scale-105" style={{ height: 'auto', display: 'block' }} />
+            <a href="https://zehnmind.ai" target="_blank" rel="noopener noreferrer">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={theme === 'dark' ? '/logos/zehnmind-dark.svg' : '/logos/zehnmind.svg'} alt="zehnmind.ai" width={160} className="transition-transform hover:scale-105" style={{ height: 'auto', display: 'block' }} />
+            </a>
           </div>
 
         </div>

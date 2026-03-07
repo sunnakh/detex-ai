@@ -11,7 +11,7 @@ TRAIN_ADAPTER = "ai_detection"
 _ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 CHECKPOINT_DIR = os.path.join(_ROOT, "checkpoints", "jina-v5-ai-detection")
 FINAL_DIR = os.path.join(_ROOT, "checkpoints", "jina-v5-ai-detection-final")
-DATASET_PATH = ".data/processed/fine-tune"  # saved by part_01, loaded by part_03
+DATASET_PATH = "../..data/processed/fine-tune"  # saved by part_01, loaded by part_03
 
 # ── Data caps ──────────────────────────────────────────────────────────────
 HC3_CAP = 100_000
