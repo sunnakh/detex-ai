@@ -425,7 +425,7 @@ export default function LandingPage() {
           {/* zehnmind.ai */}
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logos/zehnmind.svg" alt="zehnmind.ai" width={160} className="transition-transform hover:scale-105" style={{ height: 'auto', display: 'block' }} />
+            <img src="/logos/zehnmind.png" alt="zehnmind.ai" width={160} className="transition-transform hover:scale-105" style={{ height: 'auto', display: 'block' }} />
           </div>
 
         </div>
@@ -444,8 +444,7 @@ export default function LandingPage() {
               <ul className="lp-feature-list">
                 <li><span className="lp-check">1</span> <b>Paste or Upload:</b> Enter any text or drop a document into the scanner.</li>
                 <li><span className="lp-check">2</span> <b>Scan for AI:</b> Click scan to see the exact AI vs Human probability breakdown.</li>
-                <li><span className="lp-check">3</span> <b>Humanize:</b> If it's flagged as AI, use the Humanizer tab to completely rewrite the text to bypass detectors.</li>
-              </ul>
+                <li><span className="lp-check">3</span> <b>Humanize:</b> If it&apos;s flagged as AI, use the Humanizer tab to completely rewrite the text to bypass detectors.</li>              </ul>
             </div>
             <div className="lp-feature-visual">
               {/* Simplified visual */}
@@ -535,4 +534,3 @@ export default function LandingPage() {
     </div>
   );
 }
-

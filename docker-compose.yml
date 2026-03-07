@@ -8,6 +8,8 @@ services:
       - "8000:8000"
     volumes:
       - hf_cache:/cache/huggingface
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
     restart: unless-stopped
     healthcheck:
       test:

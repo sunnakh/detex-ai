@@ -19,6 +19,7 @@ RUN pip install --no-cache-dir \
     xgboost \
     "torch>=2.0.0" \
     python-multipart \
+    google-genai \
     --extra-index-url https://download.pytorch.org/whl/cpu
 
 # Pre-download the embedding model at build time so startup is instant

@@ -139,3 +139,4 @@ ml/fine-tune/fine_tune.py
 artifacts
 eval
 models
+notebooks
