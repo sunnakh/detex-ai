@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import LogoMark from '@/components/LogoMark';
@@ -12,6 +12,7 @@ export default function SettingsPage() {
   const router = useRouter();
   const supabase = createClient();
   const [tab, setTab] = useState<Tab>('profile');
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [user, setUser] = useState<any>(null);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
@@ -24,8 +25,6 @@ export default function SettingsPage() {
   // Account fields
   const [newEmail, setNewEmail] = useState('');
 
-  const avatarRef = useRef<HTMLInputElement>(null);
-
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       if (!data.user) { router.push('/sign-in'); return; }
@@ -36,6 +35,7 @@ export default function SettingsPage() {
       setBio(m?.bio || '');
       setNewEmail(data.user.email || '');
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const flash = (type: 'ok' | 'err', text: string) => {
@@ -49,7 +49,7 @@ export default function SettingsPage() {
       data: { full_name: fullName, phone, bio },
     });
     setSaving(false);
-    error ? flash('err', error.message) : flash('ok', 'Profile updated!');
+    if (error) flash('err', error.message); else flash('ok', 'Profile updated!');
   };
 
   const saveEmail = async () => {
@@ -57,7 +57,7 @@ export default function SettingsPage() {
     setSaving(true);
     const { error } = await supabase.auth.updateUser({ email: newEmail });
     setSaving(false);
-    error ? flash('err', error.message) : flash('ok', 'Confirmation email sent — check your inbox.');
+    if (error) flash('err', error.message); else flash('ok', 'Confirmation email sent — check your inbox.');
   };
 
   const sendPasswordReset = async () => {
@@ -65,7 +65,7 @@ export default function SettingsPage() {
     setSaving(true);
     const { error } = await supabase.auth.resetPasswordForEmail(user.email);
     setSaving(false);
-    error ? flash('err', error.message) : flash('ok', 'Password reset email sent.');
+    if (error) flash('err', error.message); else flash('ok', 'Password reset email sent.');
   };
 
   const signOut = async () => {
@@ -117,6 +117,7 @@ export default function SettingsPage() {
             {/* Avatar */}
             <div className="settings-avatar-row">
               <div className="settings-avatar">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 {avatar ? <img src={avatar} alt="avatar" className="settings-avatar-img" /> : <span>{initials}</span>}
               </div>
               <div>

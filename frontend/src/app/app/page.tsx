@@ -85,6 +85,7 @@ export default function AppPage() {
       }
       setHydrated(true);
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ── Load messages for a session from DB ──────────────────────────────────

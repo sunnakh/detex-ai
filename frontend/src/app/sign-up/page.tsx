@@ -1,14 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
 import LogoMark from '@/components/LogoMark';
 import { createClient } from '@/lib/supabase/client';
 
 export default function SignUpPage() {
-  const router = useRouter();
-  const [error, setError] = useState('');
 
   const signInGoogle = async () => {
     const supabase = createClient();
@@ -28,8 +24,6 @@ export default function SignUpPage() {
 
         <h1 className="auth-title">Create your account</h1>
         <p className="auth-sub">Start detecting AI-generated text for free</p>
-
-        {error && <p className="auth-error">{error}</p>}
 
         <div className="auth-btns" style={{ marginTop: '24px' }}>
           <button

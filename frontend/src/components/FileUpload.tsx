@@ -9,11 +9,6 @@ interface FileUploadProps {
 }
 
 const ALLOWED = ['.txt', '.pdf', '.docx'];
-const ALLOWED_MIME = [
-  'text/plain',
-  'application/pdf',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-];
 
 function formatBytes(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;

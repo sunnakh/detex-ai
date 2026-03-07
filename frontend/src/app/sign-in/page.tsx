@@ -1,14 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
 import LogoMark from '@/components/LogoMark';
 import { createClient } from '@/lib/supabase/client';
 
 export default function SignInPage() {
-  const router = useRouter();
-  const [error, setError] = useState('');
 
   const signInGoogle = async () => {
     const supabase = createClient();
@@ -28,8 +24,6 @@ export default function SignInPage() {
 
         <h1 className="auth-title">Welcome back</h1>
         <p className="auth-sub">Sign in to your account to continue</p>
-
-        {error && <p className="auth-error">{error}</p>}
 
         <div className="auth-btns" style={{ marginTop: '24px' }}>
           <button

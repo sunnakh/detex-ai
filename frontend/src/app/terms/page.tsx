@@ -29,7 +29,7 @@ export default function TermsPage() {
           <section>
             <h2>1. Acceptance of Terms</h2>
             <p>
-              By accessing or using detex.ai ("the Service"), you agree to be bound by these Terms of Service.
+              By accessing or using detex.ai (&quot;the Service&quot;), you agree to be bound by these Terms of Service.
               If you do not agree to these terms, please do not use the Service.
               detex.ai is operated by <strong>neurobrain-ai</strong>.
             </p>
@@ -108,7 +108,7 @@ export default function TermsPage() {
           <section>
             <h2>9. Changes to Terms</h2>
             <p>
-              We may revise these Terms at any time. We will update the "Last updated" date when we do.
+              We may revise these Terms at any time. We will update the &quot;Last updated&quot; date when we do.
               Continued use of the Service after changes constitutes your acceptance of the updated Terms.
             </p>
           </section>

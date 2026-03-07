@@ -29,9 +29,9 @@ export default function PrivacyPage() {
           <section>
             <h2>1. Overview</h2>
             <p>
-              detex.ai ("we", "us", "our") is built by <strong>neurobrain-ai</strong> and provides AI text detection services.
+              detex.ai (&quot;we&quot;, &quot;us&quot;, &quot;our&quot;) is built by <strong>neurobrain-ai</strong> and provides AI text detection services.
               This policy explains what data we collect, how we use it, and your rights as a user.
-              We believe in minimal data collection — we only collect what's necessary to provide the service.
+              We believe in minimal data collection — we only collect what&apos;s necessary to provide the service.
             </p>
           </section>
 
@@ -102,7 +102,7 @@ export default function PrivacyPage() {
             <h2>7. Changes to This Policy</h2>
             <p>
               We may update this Privacy Policy from time to time. We will notify you of significant changes
-              by updating the "Last updated" date above. Continued use of the service after changes constitutes acceptance.
+              by updating the &quot;Last updated&quot; date above. Continued use of the service after changes constitutes acceptance.
             </p>
           </section>
 
