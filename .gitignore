@@ -124,8 +124,8 @@ notebooks/pre-trained/
 inference-data.txt
 
 # Root package files (if unintended)
-package.json
-package-lock.json
+/package.json
+/package-lock.json
 
 # some folders
 testing
